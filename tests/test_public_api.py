@@ -3,24 +3,22 @@
 from __future__ import annotations
 
 import importlib
-import importlib.util
 import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 
 SUBPACKAGES = [
-    "fedcausal",
-    "fedcausal.data",
-    "fedcausal.exceptions",
-    "fedcausal.fedges",
-    "fedcausal.fusion",
-    "fedcausal.graph",
-    "fedcausal.io",
-    "fedcausal.lingam",
-    "fedcausal.metrics",
-    "fedcausal.scores",
-    "fedcausal.search",
+    "causalbase",
+    "causalbase.data",
+    "causalbase.exact",
+    "causalbase.exceptions",
+    "causalbase.graph",
+    "causalbase.io",
+    "causalbase.metrics",
+    "causalbase.order",
+    "causalbase.scores",
+    "causalbase.search",
 ]
 
 DOC_FILES = (
@@ -33,7 +31,7 @@ DOC_IMPORTS = sorted(
         (m.group(1), name.strip())
         for f in DOC_FILES
         for m in re.finditer(
-            r"^from (fedcausal[\w.]*) import ([^\n]+)$", f.read_text(encoding="utf-8"), re.M
+            r"^from (causalbase[\w.]*) import ([^\n]+)$", f.read_text(encoding="utf-8"), re.M
         )
         for name in m.group(2).split(",")
         if name.strip()
@@ -53,13 +51,11 @@ def test_every_export_resolves() -> None:
 
 
 def test_documented_imports_work() -> None:
-    """Every ``from fedcausal... import ...`` shown in the docs actually runs."""
-    has_flwr = importlib.util.find_spec("flwr") is not None
+    """Every ``from causalbase... import ...`` shown in the docs actually runs."""
     broken = [
         f"{module}.{name}"
         for module, name in DOC_IMPORTS
-        if (has_flwr or not module.startswith("fedcausal.flower"))
-        and not hasattr(importlib.import_module(module), name)
+        if not hasattr(importlib.import_module(module), name)
     ]
     assert not broken
-    assert len(DOC_IMPORTS) > 15  # guard the guard: the scrape found the imports
+    assert len(DOC_IMPORTS) > 5  # guard the guard: the scrape found the imports

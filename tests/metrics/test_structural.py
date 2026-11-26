@@ -6,8 +6,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from fedcausal.graph import DAG, PDAG
-from fedcausal.metrics.structural import EdgeScores, edge_scores, shd, shd_skeleton, smhd
+from causalbase.graph import DAG, PDAG
+from causalbase.metrics.structural import EdgeScores, edge_scores, shd, shd_skeleton, smhd
 
 
 @st.composite

@@ -6,75 +6,64 @@ detail and may change without notice: modules, functions, methods and
 attributes whose names start with an underscore, and names a module does not
 list in its ``__all__``.
 
-The estimators, :class:`~fedcausal.search.GES`,
-:class:`~fedcausal.search.XGES`, :class:`~fedcausal.fedges.FedGES` and
-:class:`~fedcausal.lingam.FedRCD`, are also importable from ``fedcausal``
-itself.
+The estimators, :class:`~causalbase.search.GES`,
+:class:`~causalbase.search.XGES`, :class:`~causalbase.search.HillClimbing`,
+:class:`~causalbase.order.OrderSearch`, :class:`~causalbase.order.FLOP` and
+:class:`~causalbase.exact.ExactSearch`, are also importable from
+``causalbase`` itself. Each of the last four runs a function of the same
+subpackage (:func:`~causalbase.search.hill_climbing`,
+:func:`~causalbase.order.order_search`, :func:`~causalbase.order.flop`,
+:func:`~causalbase.exact.exact_search`) on a
+:class:`~causalbase.scores.BDeuScore`, scored with its compiled engine, and
+each function returns a :class:`~causalbase.search.SearchResult`. GES and
+XGES take any score, ``BDeuScore(prior="tetrad")`` included, and return a
+CPDAG. Every estimator takes the score's ``ess``, ``expected_parents`` and
+``prior`` (``"bernoulli"`` or ``"tetrad"``). All take ``random_state``, ``max_iter``, ``n_restarts``, ``time_limit`` and
+``n_jobs`` with scikit-learn's meaning where they apply.
 
 Stability
 ---------
 
-fedcausal follows `Semantic Versioning <https://semver.org/>`_ from 1.0.0:
+causalbase follows `Semantic Versioning <https://semver.org/>`_ from 1.0.0;
+before that, minor releases may change the API. From 1.0.0,
 within a major version, the names below keep their signatures and meaning,
 and code written against one release runs on the next. What may change in a
 minor release is the exact structure learned when two operators or two
-fusions score the same up to rounding, since a faster kernel may sum the same
+orders score the same up to rounding, since a faster kernel may sum the same
 terms in another order; such changes are listed in the changelog. Scores of a
 given structure on given data do not change beyond rounding.
 
 The score objects cache what they compute and are not safe to share between
 threads; use one per thread, or processes.
 
-The modules come in two layers. The core, from *Data* to *Graphs and
-metrics*, learns structures in one place and never imports the federated part
-below it, which runs the same methods across sites; only its transport,
-:mod:`fedcausal.flower`, needs the ``federated`` extra.
-
 Data
 ----
 
-.. automodule:: fedcausal.datasets
+.. automodule:: causalbase.datasets
 
-.. automodule:: fedcausal.data
+.. automodule:: causalbase.data
 
 Scores and search
 -----------------
 
-.. automodule:: fedcausal.scores
+.. automodule:: causalbase.scores
 
-.. automodule:: fedcausal.search
+.. automodule:: causalbase.search
+
+.. automodule:: causalbase.order
+
+.. automodule:: causalbase.exact
 
 Graphs and metrics
 ------------------
 
-.. automodule:: fedcausal.graph
+.. automodule:: causalbase.graph
 
-.. automodule:: fedcausal.metrics
+.. automodule:: causalbase.metrics
 
-.. automodule:: fedcausal.io
-
-Fusion
-------
-
-.. automodule:: fedcausal.fusion
-
-Federated learning
-------------------
-
-.. automodule:: fedcausal.fedges
-
-.. automodule:: fedcausal.lingam
-
-Transport
----------
-
-.. automodule:: fedcausal.flower
-
-.. automodule:: fedcausal.flower.fedges
-
-.. automodule:: fedcausal.flower.lingam
+.. automodule:: causalbase.io
 
 Exceptions
 ----------
 
-.. automodule:: fedcausal.exceptions
+.. automodule:: causalbase.exceptions

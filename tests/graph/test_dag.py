@@ -5,8 +5,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from fedcausal.exceptions import FedCausalError
-from fedcausal.graph import DAG, CycleError
+from causalbase.exceptions import CausalBaseError
+from causalbase.graph import DAG, CycleError
 
 
 @given(st.integers(2, 12), st.data())
@@ -54,7 +54,7 @@ def test_malformed_input_is_refused() -> None:
         DAG(3).remove_edge(0, 1)
     with pytest.raises(CycleError):
         DAG(2).add_edge(1, 1)
-    with pytest.raises(FedCausalError):  # CycleError is one, and a ValueError
+    with pytest.raises(CausalBaseError):  # CycleError is one, and a ValueError
         DAG.from_edges(2, [(0, 1), (1, 0)])
     with pytest.raises(CycleError):
         DAG.from_amat(np.array([[0, 1], [1, 0]]))

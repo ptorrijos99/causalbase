@@ -23,8 +23,6 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-      # mypy needs no flwr: pyproject tells it to ignore those imports, which
-      # keeps this job independent of Flower's own dependency pins.
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: ruff format --check .
@@ -43,12 +41,11 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
-      - run: pip install -e ".[dev,federated]"
+      - run: pip install -e ".[dev]"
       - run: pytest --tb=short
 
-  # The oldest dependencies pyproject.toml allows, and no extras: the core and
-  # the in-process FedGES and FedRCD must work without Flower, and the lower
-  # bounds must be true. The Flower tests skip themselves without flwr.
+  # The oldest dependencies pyproject.toml allows, and no extras: the lower
+  # bounds must be true.
   minimum:
     runs-on: ubuntu-latest
     steps:
@@ -61,7 +58,6 @@ jobs:
           pip install -e .
           "numba==0.59.*" "numpy==1.24.*" "pandas==2.0.*" "typing_extensions==4.0.*"
           "pytest>=8" "hypothesis>=6"
-      - run: python -c "import importlib.util as u, sys; sys.exit(u.find_spec('flwr') is not None)"
       - run: pytest --tb=short
 
   examples:
@@ -72,14 +68,8 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-      - run: pip install -e ".[federated]"
+      - run: pip install -e .
       - run: python examples/01_learn_structure.py
-      - run: python examples/02_federated_structure.py
-      - run: python examples/03_fedrcd.py
-      # The README points people at this app, so a wiring mistake in it should
-      # be a red build rather than something they discover.
-      - run: python -c "import fedcausal_site.app"
-        working-directory: flower_app
 
   docs:
     runs-on: ubuntu-latest
@@ -89,8 +79,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-      # flower too, or the API page of fedcausal.flower cannot import it.
-      - run: pip install -e ".[docs,federated]"
+      - run: pip install -e ".[docs]"
       # Builds the gallery too, so an example that stops running fails here.
       - run: sphinx-build -b html docs docs/_build/html
 

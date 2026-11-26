@@ -6,8 +6,8 @@ import numpy as np
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from fedcausal.graph import DAG
-from fedcausal.graph.undirected import fill_in, maximal_cliques, mcs_order, moralize, treewidth
+from causalbase.graph import DAG
+from causalbase.graph.undirected import fill_in, maximal_cliques, mcs_order, moralize, treewidth
 
 
 @st.composite

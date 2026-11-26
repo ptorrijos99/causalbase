@@ -4,17 +4,14 @@ from __future__ import annotations
 
 import doctest
 import importlib
-import importlib.util
 import pkgutil
 
-import fedcausal
+import causalbase
 
 
 def _modules() -> list[str]:
     names = []
-    for info in pkgutil.walk_packages(fedcausal.__path__, "fedcausal."):
-        if info.name.startswith("fedcausal.flower") and importlib.util.find_spec("flwr") is None:
-            continue
+    for info in pkgutil.walk_packages(causalbase.__path__, "causalbase."):
         names.append(info.name)
     return sorted(names)
 

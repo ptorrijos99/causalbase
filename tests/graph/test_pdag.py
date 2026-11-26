@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from fedcausal.graph import DAG, PDAG
-from fedcausal.graph.cpdag import dag_to_cpdag
+from causalbase.graph import DAG, PDAG
+from causalbase.graph.cpdag import dag_to_cpdag
 
 
 def _neighbours(pdag: PDAG) -> list[list[int]]:

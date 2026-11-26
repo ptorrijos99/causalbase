@@ -7,10 +7,15 @@ import math
 import numpy as np
 import pytest
 
-from fedcausal.data import ContinuousDataset, DiscreteDataset
-from fedcausal.graph import DAG
-from fedcausal.scores import BDeuScore, BICScore, GaussianBICScore, log_likelihood, make_score
-from fedcausal.scores._kernels import extension_buffers, family_extensions, family_score, value_bits
+from causalbase.data import ContinuousDataset, DiscreteDataset
+from causalbase.graph import DAG
+from causalbase.scores import BDeuScore, BICScore, GaussianBICScore, log_likelihood, make_score
+from causalbase.scores._kernels import (
+    extension_buffers,
+    family_extensions,
+    family_score,
+    value_bits,
+)
 
 
 def _discrete(n_rows: int, cards: list[int], seed: int) -> DiscreteDataset:

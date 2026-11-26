@@ -5,7 +5,7 @@ from __future__ import annotations
 import _reference_kernels as ref  # next to this file
 import numpy as np
 
-from fedcausal.graph import _kernels as k
+from causalbase.graph import _kernels as k
 
 
 def _random_dag(n: int, density: float, rng: np.random.Generator) -> np.ndarray:

@@ -1,68 +1,27 @@
 cff-version: 1.2.0
-title: "fedcausal: federated causal discovery"
-message: "If you use this software, please cite the FedGES paper below."
+title: "causalbase: causal structure learning"
+message: "If you use this software, please cite it as below."
 type: software
 authors:
   - family-names: "Torrijos"
     given-names: "Pablo"
     affiliation: "Universidad de Castilla-La Mancha"
-repository-code: "https://github.com/ptorrijos99/fedcausal"
+repository-code: "https://github.com/ptorrijos99/causalbase"
 license: MIT
-version: 1.0.0
+version: 0.1.0
 abstract: >-
-  A Python implementation of federated causal discovery over two data regimes.
-  FedGES learns Bayesian network structure from discrete data: each site runs
-  greedy equivalence search on the data it holds, a coordinator combines the
-  resulting graphs by structural consensus fusion, and only graphs and scores
-  cross the network. FedRCD learns a causal order and linear coefficients from
-  continuous data under a linear non-Gaussian model: each site reduces its
-  rows to cumulant statistics, and only those statistics cross the network.
-  Runs in-process for experiments and over Flower for deployment.
+  A Python library for causal structure learning from data held in one place:
+  greedy equivalence search (GES) and XGES over BDeu, BIC or Gaussian BIC,
+  with compiled scores, graph kernels, metrics, XMLBIF input and output, and
+  bundled benchmark networks. The federated methods of fedcausal build on it.
 keywords:
   - causal discovery
   - structure learning
   - Bayesian networks
-  - federated learning
   - greedy equivalence search
-  - LiNGAM
-  - cumulants
-
-preferred-citation:
-  type: article
-  title: "FedGES: A Federated Learning Approach for Bayesian Network Structure Learning"
-  authors:
-    - family-names: "Torrijos"
-      given-names: "Pablo"
-    - family-names: "Gámez"
-      given-names: "José A."
-    - family-names: "Puerta"
-      given-names: "José M."
-  journal: "Machine Learning"
-  volume: 115
-  issue: 1
-  start: 9
-  year: 2026
-  month: 12
-  doi: "10.1007/s10994-025-06939-2"
-  url: "https://doi.org/10.1007/s10994-025-06939-2"
+  - BDeu
 
 references:
-  # The FedRCD paper. Pages, volume, DOI and URL are left out until the
-  # proceedings are published.
-  - type: conference-paper
-    title: "Federated Causal Discovery via Regression-Directed Cumulants"
-    authors:
-      - family-names: "Torrijos"
-        given-names: "Pablo"
-      - family-names: "Stella"
-        given-names: "Fabio"
-      - family-names: "Gámez"
-        given-names: "José A."
-      - family-names: "Puerta"
-        given-names: "José M."
-    conference:
-      name: "Probabilistic Graphical Models (PGM)"
-    year: 2026
   - type: article
     title: "Optimal structure identification with greedy search"
     authors:
@@ -73,16 +32,3 @@ references:
     year: 2002
     start: 507
     end: 554
-  - type: article
-    title: "Efficient and accurate structural fusion of Bayesian networks"
-    authors:
-      - family-names: "Puerta"
-        given-names: "José M."
-      - family-names: "Aledo"
-        given-names: "Juan A."
-      - family-names: "Gámez"
-        given-names: "José A."
-      - family-names: "Laborda"
-        given-names: "Jorge D."
-    journal: "Information Fusion"
-    year: 2021

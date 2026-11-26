@@ -1,4 +1,4 @@
-"""Sphinx configuration for the fedcausal documentation.
+"""Sphinx configuration for the causalbase documentation.
 
 Build it with::
 
@@ -16,9 +16,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from fedcausal import __version__  # noqa: E402
+from causalbase import __version__  # noqa: E402
 
-project = "fedcausal"
+project = "causalbase"
 author = "Pablo Torrijos Arenas"
 copyright = "2026, Pablo Torrijos Arenas"  # noqa: A001
 version = __version__
@@ -78,9 +78,9 @@ sphinx_gallery_conf = {
 # -- HTML -------------------------------------------------------------------
 
 html_theme = "pydata_sphinx_theme"
-html_title = f"fedcausal {version}"
+html_title = f"causalbase {version}"
 html_theme_options = {
-    "github_url": "https://github.com/ptorrijos99/fedcausal",
+    "github_url": "https://github.com/ptorrijos99/causalbase",
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "show_prev_next": False,
     "footer_start": ["copyright"],

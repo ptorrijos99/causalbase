@@ -7,9 +7,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from fedcausal.io import forward_sample, load_xbif
+from causalbase.io import forward_sample, load_xbif
 
-ASIA = Path(__file__).resolve().parents[2] / "src" / "fedcausal" / "datasets" / "data" / "asia.xbif"
+ASIA = (
+    Path(__file__).resolve().parents[2] / "src" / "causalbase" / "datasets" / "data" / "asia.xbif"
+)
 
 
 def test_asia_loads_with_its_declared_orders_and_tables() -> None:

@@ -3,10 +3,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "fedcausal"
-# Read from `fedcausal.__version__`, so the package and its metadata agree.
+name = "causalbase"
+# Read from `causalbase.__version__`, so the package and its metadata agree.
 dynamic = ["version"]
-description = "Causal structure learning, centralised and federated: GES, FedGES and FedRCD"
+description = "Causal structure learning from data in one place: GES, XGES and order-based search for BDeu"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -15,11 +15,11 @@ keywords = [
   "causal discovery",
   "structure learning",
   "bayesian networks",
-  "federated learning",
-  "LiNGAM",
+  "BDeu",
+  "order search",
 ]
 classifiers = [
-  "Development Status :: 5 - Production/Stable",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
@@ -43,10 +43,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ptorrijos99/fedcausal"
-Documentation = "https://ptorrijos99.github.io/fedcausal/"
-Issues = "https://github.com/ptorrijos99/fedcausal/issues"
-Changelog = "https://github.com/ptorrijos99/fedcausal/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/ptorrijos99/causalbase"
+Documentation = "https://ptorrijos99.github.io/causalbase/"
+Issues = "https://github.com/ptorrijos99/causalbase/issues"
+Changelog = "https://github.com/ptorrijos99/causalbase/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
@@ -60,6 +60,8 @@ dev = [
   "pandas-stubs>=2.0",
   "pre-commit",
 ]
+# The ILP of causalbase.exact under a parent limit.
+exact = ["pyscipopt>=5"]
 docs = [
   "sphinx>=7",
   "pydata-sphinx-theme>=0.15",
@@ -68,25 +70,14 @@ docs = [
   "myst-parser>=2",
   "sphinx-copybutton>=0.5",
 ]
-# What only federation across processes needs: the Flower transport in
-# fedcausal.flower. The core (data, graph, scores, search, metrics, io,
-# datasets) and the in-process FedGES and FedRCD need none of it. Deployment
-# against a SuperLink needs nothing more. Flower changes its API between
-# minor releases, so the range stops at the next major one.
-federated = ["flwr>=1.23,<2"]
-# Flower's simulation engine runs on Ray, which has no wheel for every Python
-# version and platform, so it is a separate extra rather than a hard cost of
-# using the transport.
-federated-simulation = ["flwr[simulation]>=1.23,<2"]
-
 [tool.hatch.version]
-path = "src/fedcausal/__init__.py"
+path = "src/causalbase/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/fedcausal"]
+packages = ["src/causalbase"]
 # The bundled networks are package data, so they must be named or the wheel
 # ships loaders with nothing to load.
-artifacts = ["src/fedcausal/datasets/data/*.xbif", "src/fedcausal/datasets/data/*.csv.gz"]
+artifacts = ["src/causalbase/datasets/data/*.xbif", "src/causalbase/datasets/data/*.csv.gz"]
 
 [tool.ruff]
 line-length = 100
@@ -108,38 +99,24 @@ strict = true
 files = ["src"]
 
 [[tool.mypy.overrides]]
-# flwr is an optional extra, so type checking must not require it to be
-# installed. Its app decorators are untyped, which under `strict` would make
-# every handler they wrap untyped too.
-module = ["flwr.*"]
+# numba and llvmlite ship no type stubs; scikit-learn and pyscipopt are optional and untyped.
+module = ["llvmlite.*", "numba.*", "pyscipopt.*", "sklearn.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-# numba and llvmlite ship no type stubs; scikit-learn is optional and untyped.
-module = ["llvmlite.*", "numba.*", "sklearn.*"]
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-# The compiled kernels are numba functions; their numpy indexing is untyped.
-module = ["fedcausal.*._kernels"]
+# The compiled kernels are numba functions; their numpy indexing is untyped. The
+# other modules listed keep their numba kernels next to the Python code that calls them.
+module = [
+    "causalbase.*._kernels",
+    "causalbase.exact.dp",
+    "causalbase.exact.ilp",
+    "causalbase.scores._compiled",
+    "causalbase.search.hill_climb",
+]
 disallow_untyped_decorators = false
 disallow_untyped_calls = false
 disallow_any_generics = false
 warn_return_any = false
 
-[[tool.mypy.overrides]]
-module = ["fedcausal.flower.*"]
-disallow_untyped_decorators = false
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# The slow tests run Flower's Ray simulation engine: a minute each, and Ray
-# now and then hangs when a process starts it twice. `pytest -m slow` runs them.
-addopts = "-m 'not slow'"
-markers = [
-  "slow: Ray simulations, skipped by default; run them with `pytest -m slow`",
-]
-
-# The Flower app lives in flower_app/, with its own pyproject: `flwr run
-# flower_app`. A library has no business shipping a `[tool.flwr]`
-# block of its own.

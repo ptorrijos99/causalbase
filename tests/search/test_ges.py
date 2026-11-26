@@ -8,15 +8,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from fedcausal import GES, XGES
-from fedcausal.data import as_continuous, as_discrete
-from fedcausal.datasets import load_alarm, load_asia, load_network
-from fedcausal.graph import DAG, PDAG
-from fedcausal.graph.cpdag import dag_to_cpdag
-from fedcausal.metrics import shd
-from fedcausal.scores import BDeuScore, FamilyScore, make_score
-from fedcausal.search import Knowledge, ges, xges
-from fedcausal.search import _operators as ops
+from causalbase import GES, XGES
+from causalbase.data import as_continuous, as_discrete
+from causalbase.datasets import load_alarm, load_asia, load_network
+from causalbase.graph import DAG, PDAG
+from causalbase.graph.cpdag import dag_to_cpdag
+from causalbase.metrics import shd
+from causalbase.scores import BDeuScore, FamilyScore, make_score
+from causalbase.search import Knowledge, ges, xges
+from causalbase.search import _operators as ops
 
 # The score GES reaches on each bundled sample, and the SHD of what it learns. A
 # change in a score means GES now stops at another local optimum; a change in an
@@ -69,9 +69,27 @@ def test_the_estimator_starts_from_a_given_dag() -> None:
 def test_only_candidate_pairs_gain_edges() -> None:
     data = load_asia().data
     allowed = frozenset({(0, 1), (1, 0), (2, 3), (3, 2)})
-    cpdag = ges(BDeuScore(data), data.n_vars, candidates=allowed)
+    cpdag = ges(BDeuScore(data), candidates=allowed)
     edges = cpdag.directed_edges() + cpdag.undirected_edges()
     assert {frozenset(e) for e in edges} <= {frozenset(p) for p in allowed}
+
+
+def test_the_searches_take_the_number_of_variables_from_the_score() -> None:
+    data = load_asia().data
+    score = BDeuScore(data)
+    assert ges(score).num_nodes == xges(score).num_nodes == data.n_vars
+    with pytest.raises(ValueError, match="nodes"):
+        ges(score, DAG(3))
+
+
+def test_the_searches_take_tetrads_score_through_its_view() -> None:
+    from causalbase.scores import BDeuScore
+
+    data = load_asia().data
+    score = BDeuScore(data, prior="tetrad")
+    for search in (ges, xges):
+        assert search(score) == search(score._search_view())
+        assert search(score).num_nodes == score.n_vars
 
 
 def test_the_estimator_takes_frames_and_arrays_and_names_its_result() -> None:
@@ -112,7 +130,7 @@ def test_required_and_forbidden_adjacencies_hold_whatever_the_data_say() -> None
 
 
 def test_knowledge_rejects_contradictions_and_unknown_names() -> None:
-    from fedcausal.search import Knowledge
+    from causalbase.search import Knowledge
 
     with pytest.raises(ValueError, match="both required and forbidden"):
         Knowledge.from_pairs([("a", "b")], [("b", "a")], names=["a", "b"])
@@ -218,17 +236,16 @@ def _improving(score: FamilyScore, cpdag: PDAG, kinds: str) -> list[tuple[str, i
 
 def test_every_search_stops_at_a_local_optimum_and_never_below_its_start() -> None:
     for score, truth in _problems(30):
-        n = truth.num_nodes
-        assert _improving(score, ges(score, n, backward=False), "I") == []
-        assert _improving(score, ges(score, n), "D") == []
-        xges0, full = xges(score, n, extended=False), xges(score, n)
+        assert _improving(score, ges(score, backward=False), "I") == []
+        assert _improving(score, ges(score), "D") == []
+        xges0, full = xges(score, extended=False), xges(score)
         assert _improving(score, xges0, "IDR") == []
         assert _improving(score, full, "IDR") == []
         assert _value(score, full) >= _value(score, xges0) - 1e-6
         for extended in (False, True):
-            from_truth = xges(score, n, truth, extended=extended)
+            from_truth = xges(score, truth, extended=extended)
             assert _value(score, from_truth) >= _value(score, truth) - 1e-6
-        assert _value(score, ges(score, n, truth)) >= _value(score, truth) - 1e-6
+        assert _value(score, ges(score, truth)) >= _value(score, truth) - 1e-6
 
 
 def test_every_search_keeps_to_knowledge_the_parent_cap_and_the_screen() -> None:
@@ -241,9 +258,9 @@ def test_every_search_keeps_to_knowledge_the_parent_cap_and_the_screen() -> None
         for extended in (None, False, True):
             options = dict(knowledge=knowledge, max_parents=2, one_edge_faithfulness=True)
             if extended is None:
-                cpdag = ges(score, n, **options)  # type: ignore[arg-type]
+                cpdag = ges(score, **options)  # type: ignore[arg-type]
             else:
-                cpdag = xges(score, n, extended=extended, **options)  # type: ignore[arg-type]
+                cpdag = xges(score, extended=extended, **options)  # type: ignore[arg-type]
             dag = cpdag.to_dag()
             skeleton = {frozenset(e) for e in dag.edges()}
             assert required in skeleton and forbidden not in skeleton

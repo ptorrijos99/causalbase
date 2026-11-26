@@ -5,7 +5,7 @@
 ```python
 import pandas as pd
 
-from fedcausal import GES
+from causalbase import GES
 
 frame = pd.read_csv("survey.csv", dtype=str)
 model = GES().fit(frame)
@@ -17,8 +17,8 @@ Every distinct value of a column is one level, so numbers are read as labels too
 ## Measure it against a known network
 
 ```python
-from fedcausal.datasets import load_asia
-from fedcausal.metrics import edge_scores, shd
+from causalbase.datasets import load_asia
+from causalbase.metrics import edge_scores, shd
 
 bundle = load_asia()  # data sampled from a known network
 model = GES().fit(bundle.data)
@@ -26,28 +26,7 @@ shd(bundle.truth, model.dag_)  # structural Hamming distance
 edge_scores(bundle.truth, model.dag_).f1_skel
 ```
 
-`bundle.truth` is already indexed like the data's columns. To compare against a network of your own, load it with `fedcausal.io.load_xbif` and re-index it onto the data's column order first.
-
-## Learn across sites
-
-```python
-from fedcausal import FedGES
-
-sites = [pd.read_csv(f"site{i}.csv", dtype=str) for i in range(3)]
-model = FedGES(n_jobs=-1).fit(sites)
-model.dag_, model.history_
-```
-
-Each site's table stays a separate input: its rows are only ever seen by its own GES. Levels are pooled across sites, so a value seen at one site is a level everywhere. `n_jobs=-1` runs the sites in parallel processes. To simulate sites from one table, `fedcausal.data.contiguous_split` and `dirichlet_split` split it.
-
-## Learn a linear model across sites
-
-```python
-from fedcausal import FedRCD
-
-model = FedRCD().fit([x1, x2, x3])  # one numeric array or DataFrame per site
-model.causal_order_, model.coef_
-```
+`bundle.truth` is already indexed like the data's columns. To compare against a network of your own, load it with `causalbase.io.load_xbif` and re-index it onto the data's column order first.
 
 ## Tune like any scikit-learn estimator
 
@@ -70,4 +49,4 @@ Continuous data takes `GES(criterion="gaussian_bic")`.
 
 ## Next
 
-[Algorithms](algorithms.md) explains every option. [Deployment](deployment.md) runs a federation across real machines.
+[Algorithms](algorithms.md) explains every option.

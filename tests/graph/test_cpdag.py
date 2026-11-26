@@ -7,8 +7,8 @@ import itertools
 import hypothesis.strategies as st
 from hypothesis import given, settings
 
-from fedcausal.graph import DAG, PDAG
-from fedcausal.graph.cpdag import apply_meek_rules, dag_to_cpdag
+from causalbase.graph import DAG, PDAG
+from causalbase.graph.cpdag import apply_meek_rules, dag_to_cpdag
 
 
 @st.composite

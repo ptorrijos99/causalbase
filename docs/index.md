@@ -1,25 +1,21 @@
-# fedcausal
+# causalbase
 
-Causal structure learning for data in one place or spread across sites that cannot share it.
+Causal structure learning from data held in one place.
 
-| Estimator | Data | What crosses the network |
-|---|---|---|
-| {class}`~fedcausal.search.GES` | Discrete or continuous, in one place | Nothing |
-| {class}`~fedcausal.search.XGES` | Discrete or continuous, in one place | Nothing |
-| {class}`~fedcausal.fedges.FedGES` | Discrete or continuous, across sites | Structures and scores |
-| {class}`~fedcausal.lingam.FedRCD` | Continuous, linear non-Gaussian, across sites | Additive moment sums |
+| Estimator | Data |
+|---|---|
+| {class}`~causalbase.search.GES` | Discrete or continuous |
+| {class}`~causalbase.search.XGES` | Discrete or continuous, with a search that also removes and reverses edges |
 
 ```python
-from fedcausal import FedGES
-from fedcausal.data import contiguous_split
-from fedcausal.datasets import load_alarm
+from causalbase import GES
+from causalbase.datasets import load_alarm
 
-sites = contiguous_split(load_alarm().data, 5)
-model = FedGES(n_jobs=-1).fit(sites)
+model = GES().fit(load_alarm().data)
 model.adjacency_
 ```
 
-Federated runs work in one process for experiments, or over [Flower](https://flower.ai) across real machines, with the same round loop in both.
+Learning across sites that cannot share their data is the job of `fedcausal`, which builds on this package.
 
 ```{toctree}
 :maxdepth: 1
@@ -35,8 +31,6 @@ quickstart
 
 bring-your-own-data
 algorithms
-fedrcd
-deployment
 ```
 
 ```{toctree}
@@ -55,4 +49,4 @@ benchmarks
 validation
 ```
 
-How to contribute: [CONTRIBUTING.md](https://github.com/ptorrijos99/fedcausal/blob/main/CONTRIBUTING.md).
+How to contribute: [CONTRIBUTING.md](https://github.com/ptorrijos99/causalbase/blob/main/CONTRIBUTING.md).

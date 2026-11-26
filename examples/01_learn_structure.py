@@ -2,15 +2,15 @@
 Learn a structure from discrete data
 ====================================
 
-:class:`~fedcausal.search.GES` learns the Markov equivalence class of a causal
+:class:`~causalbase.search.GES` learns the Markov equivalence class of a causal
 structure from discrete observations. It takes a DataFrame, an array or a
-:class:`~fedcausal.data.DiscreteDataset`, and every distinct value of a column
+:class:`~causalbase.data.DiscreteDataset`, and every distinct value of a column
 is one level.
 """
 
-from fedcausal import GES
-from fedcausal.datasets import load_asia
-from fedcausal.metrics import edge_scores, shd
+from causalbase import GES
+from causalbase.datasets import load_asia
+from causalbase.metrics import edge_scores, shd
 
 bundle = load_asia()
 frame = bundle.data.to_pandas()
