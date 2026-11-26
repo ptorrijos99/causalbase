@@ -156,6 +156,41 @@ def test_limited_candidates_equal_the_full_enumeration_without_a_limit():
         assert np.array_equal(lm3, masks[small]) and np.array_equal(ls3, sc[small])
 
 
+def _wide_data(p, n, seed):
+    """Many variables, each a noisy copy of the previous one, so single parents matter."""
+    rng = np.random.default_rng(seed)
+    X = np.zeros((n, p), dtype=np.int64)
+    X[:, 0] = rng.integers(0, 2, n)
+    for v in range(1, p):
+        X[:, v] = np.where(rng.random(n) < 0.9, X[:, v - 1], 1 - X[:, v - 1])
+    return DiscreteDataset(X, np.full(p, 2), [f"x{i}" for i in range(p)], [["0", "1"]] * p)
+
+
+def test_limited_candidates_refuse_more_than_64_variables():
+    # Parent sets are bitmasks over the other variables in an int64: from 65 variables on the
+    # high bits wrap and the candidates of the later variables would be wrong, silently.
+    from causalbase.exact.ilp import limited_candidates
+
+    fast = BDeuScore(_wide_data(66, 300, 1), prior="tetrad")
+    with pytest.raises(ValueError, match="64 variables"):
+        limited_candidates(fast, 65, 1)
+    with pytest.raises(ValueError, match="64 variables"):
+        exact_search(fast, max_parents=1)
+
+
+def test_limited_candidates_are_right_with_64_variables():
+    from causalbase.exact.ilp import _to_vars, limited_candidates
+
+    fast = BDeuScore(_wide_data(64, 300, 1), prior="tetrad")
+    for v in (0, 62, 63):
+        masks, scores, total = limited_candidates(fast, v, 1)
+        assert total == 64 and (masks >= 0).all()
+        for m, s in zip(masks, scores, strict=True):
+            assert fast.local_score(v, _to_vars(m, v)) == pytest.approx(s, abs=1e-9)
+        # Candidates come by decreasing score; the best single parent is a neighbour in the chain.
+        assert tuple(_to_vars(masks[0], v)) in {(v - 1,), (v + 1,)}
+
+
 @pytest.mark.parametrize("p,seed", [(5, 3), (6, 8), (7, 9)])
 def test_integer_program_agrees_with_dynamic_programming(p, seed):
     pytest.importorskip("pyscipopt")

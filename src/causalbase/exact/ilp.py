@@ -138,11 +138,17 @@ def limited_candidates(
     Returns the candidates as bitmasks over the other variables (bit ``b`` is
     the ``b``-th other variable in increasing order) with their scores, by
     decreasing score, and how many sets were scored. `score` is a
-    :class:`~causalbase.scores.BDeuScore` or its compiled engine.
+    :class:`~causalbase.scores.BDeuScore` or its compiled engine. The masks
+    are int64, so the data may have at most 64 variables.
     """
     score = engine_of(score)
     data = score.data
     p = data.n_vars
+    if p > 64:
+        raise ValueError(
+            "parent sets are 64-bit masks over the other variables, "
+            f"so at most 64 variables; got {p}"
+        )
     if data.n_rows >= 2**15 or max(data.cardinalities) > 255:
         raise ValueError("the kernel counts in int16 and stores values in uint8")
     others = np.array([u for u in range(p) if u != v], dtype=np.int64)

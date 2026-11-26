@@ -527,7 +527,7 @@ def exact_search(
     ------
     ValueError
         If `max_parents` or `n_jobs` is out of range, or the data is too large
-        for the kernels.
+        for the kernels (with `max_parents`, more than 64 variables).
 
     Examples
     --------
