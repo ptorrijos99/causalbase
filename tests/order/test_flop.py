@@ -22,7 +22,7 @@ def test_flop_returns_a_dag_that_follows_its_order_and_scores_what_it_claims(ala
     res = flop(fast, list(range(ds.n_vars)), random_state=0, time_limit=3.0)
     assert time.perf_counter() - t0 < 3.0 + 2.0
     assert isinstance(res, SearchResult)
-    assert set(res.info) == {"order", "parents", "restarts"}
+    assert set(res.info) == {"order", "parents", "restarts", "cache_evicted"}
     pos = {v: i for i, v in enumerate(res.info["order"])}
     for v, ps in enumerate(res.info["parents"]):
         assert all(pos[u] < pos[v] for u in ps)
@@ -54,3 +54,16 @@ def test_random_state_reproduces_the_old_seed(alarm_small):
 def test_flop_needs_a_limit(alarm_small):
     with pytest.raises(ValueError, match="max_iter"):
         flop(BDeuScore(alarm_small, prior="tetrad"), list(range(alarm_small.n_vars)))
+
+
+def test_a_tight_cache_budget_gives_the_same_search(alarm_small):
+    # The draws do not depend on cache hits, so dropping scores only costs their recomputation.
+    fast = BDeuScore(alarm_small, prior="tetrad")
+    free = flop(fast, max_iter=6, random_state=2)
+    tight = flop(fast, max_iter=6, random_state=2, cache_mb=0.02)
+    assert tight.score == free.score
+    assert tight.info["order"] == free.info["order"]
+    assert sorted(tight.dag.edges()) == sorted(free.dag.edges())
+    assert tight.info["cache_evicted"] > 0 and free.info["cache_evicted"] == 0
+    with pytest.raises(ValueError, match="cache_mb"):
+        flop(fast, max_iter=1, cache_mb=0)

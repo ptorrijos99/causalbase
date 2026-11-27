@@ -18,11 +18,13 @@ from __future__ import annotations
 
 import math
 import random
+import sys
 import time
 from collections.abc import Sequence
+from itertools import islice
 from typing import TYPE_CHECKING, Any
 
-from causalbase._validation import check_count, check_time_limit, resolve_seed
+from causalbase._validation import check_count, check_positive, check_time_limit, resolve_seed
 from causalbase.graph import DAG
 from causalbase.order.polished import start_order
 from causalbase.scores._compiled import engine_of
@@ -46,17 +48,35 @@ def _bits(mask: int) -> list[int]:
 
 
 class _Evaluator:
-    def __init__(self, fast: Any, n: int, seed: int) -> None:
+    def __init__(self, fast: Any, n: int, seed: int, cache_mb: float | None) -> None:
         self.fast = fast
         self.rng = random.Random(seed)
+        # Per node: parent mask -> local score. A dict entry, a mask as wide as the
+        # network and a float take about 100 + key + 24 bytes.
         self.cache: list[dict[int, float]] = [{} for _ in range(n)]
+        per_entry = 124 + sys.getsizeof((1 << n) - 1)
+        self.cap = math.inf if cache_mb is None else cache_mb * 2**20 / per_entry
+        self.size = 0
+        self.evicted = 0
+
+    def _store(self, c: dict[int, float], mask: int, s: float) -> None:
+        c[mask] = s
+        self.size += 1
+        if self.size > self.cap:
+            # Every node drops its oldest quarter. The draws never depend on what is
+            # cached, so this changes no result, only what has to be scored again.
+            for d in self.cache:
+                for k in list(islice(d, (len(d) + 3) // 4)):
+                    del d[k]
+                    self.evicted += 1
+            self.size = sum(len(d) for d in self.cache)
 
     def ls(self, v: int, mask: int) -> float:
         c = self.cache[v]
         s = c.get(mask)
         if s is None:
             s = self.fast.local_score(v, _bits(mask))
-            c[mask] = s
+            self._store(c, mask, s)
         return s
 
     def add(self, v: int, mask: int, w: int) -> float:
@@ -65,7 +85,7 @@ class _Evaluator:
         s = c.get(m)
         if s is None:
             s = float(self.fast.local_scores_add(v, _bits(mask), [w])[0])
-            c[m] = s
+            self._store(c, m, s)
         return s
 
     def grow(self, v: int, P: int, cur: float, Z: int) -> tuple[int, float]:
@@ -182,6 +202,7 @@ def flop(
     max_iter: int | None = None,
     time_limit: float | None = None,
     random_state: int | None = None,
+    cache_mb: float | None = 2048,
 ) -> SearchResult:
     """Run FLOP: its local search over orders, then its iterated local search.
 
@@ -206,13 +227,20 @@ def flop(
     random_state : int or None, default=None
         Seeds the candidate orders of the grow-shrink and the kicks; None draws
         a fresh seed.
+    cache_mb : float or None, default=2048
+        Memory budget of the cache of local scores, in MiB; None leaves it
+        unbounded. Past it, every node drops its oldest quarter of scores. The
+        search does not change, only how many families it scores again.
+        ``flopsearch`` keeps no such cache (it updates Cholesky factors of the
+        Gaussian BIC); with BDeu, scoring a family means counting the data.
 
     Returns
     -------
     SearchResult
         ``n_iter`` counts the kicks. ``info`` holds ``"order"`` (the best order),
         ``"parents"`` (the parent set of each node, as frozensets, consistent
-        with that order) and ``"restarts"`` (local searches run, ``n_iter + 1``).
+        with that order), ``"restarts"`` (local searches run, ``n_iter + 1``)
+        and ``"cache_evicted"`` (scores dropped to keep within `cache_mb`).
 
     Raises
     ------
@@ -229,6 +257,8 @@ def flop(
     """
     check_count("max_iter", max_iter, allow_none=True)
     check_time_limit(time_limit)
+    if cache_mb is not None:
+        check_positive("cache_mb", cache_mb)
     if max_iter is None and time_limit is None:
         raise ValueError("set max_iter, time_limit or both, or the search never ends")
     seed = resolve_seed(random_state)
@@ -236,7 +266,7 @@ def flop(
     # FLOP counts local searches: the first one, then one per kick.
     max_restarts = None if max_iter is None else max_iter + 1
     n = len(start)
-    ev = _Evaluator(engine_of(score), n, seed)
+    ev = _Evaluator(engine_of(score), n, seed, cache_mb)
     rng = random.Random(seed + 1)
     k = max(1, round(math.log(n)))
     t0 = time.perf_counter()
@@ -259,5 +289,10 @@ def flop(
             trace.append((time.perf_counter() - t0, restarts - 1, best))
     parents = [frozenset(_bits(m)) for m in best_par]
     dag = DAG.from_edges(n, [(u, v) for v in range(n) for u in parents[v]])
-    info = {"order": list(best_perm), "parents": parents, "restarts": restarts}
+    info = {
+        "order": list(best_perm),
+        "parents": parents,
+        "restarts": restarts,
+        "cache_evicted": ev.evicted,
+    }
     return SearchResult(dag, sum(best_sc), restarts - 1, trace, info)

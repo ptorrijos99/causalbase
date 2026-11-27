@@ -30,6 +30,11 @@ Every search takes every score, every score runs on compiled kernels, and the si
 - `exact_search` walks the parent sets of every score with compiled kernels: the counting kernels of BDeu also score the discrete BIC, and new kernels score the Gaussian BIC and BGe by one elimination step per set, about a tenth of a microsecond each, so 20 Gaussian variables take a second or two. The discrete BIC is pruned with the bound of de Campos and Ji (2011) and the Gaussian BIC with the likelihood of the family of every other variable; BGe is not pruned. A score of one's own is walked in Python.
 - The estimators live with their functions: `GES`, `XGES` and `HillClimbing` in `causalbase.search.estimator`, `OrderSearch` and `FLOP` in `causalbase.order.estimator`, `ExactSearch` in `causalbase.exact.estimator`. Their public import paths do not change.
 
+### Memory
+
+- `OrderScorer` used to keep a score for every variable of every parent set it visited, so its memory grew with the length of the search (about 12 GB on munin, with 1041 variables, after 30 minutes). It now keeps, for each parent set, only the toggles that improve on it, which are the only ones a climb, a replay or `breaks` can take, and one answer object per result shared by every predecessor set that reaches it. Searches and their results are unchanged.
+- `cache_mb`, in `OrderScorer`, `order_search`, `flop`, `OrderSearch` and `FLOP`: a memory budget for the caches of local scores and visited parent sets, 2048 MiB by default except in `OrderScorer` (unbounded). When a query leaves them above it, every cache drops its oldest quarter. Results do not change, since a dropped entry is computed again when needed; a tight budget only costs time. `OrderScorer.cache_nbytes` is the estimate the budget is checked against, and `flop` reports the scores it dropped in `info["cache_evicted"]`.
+
 ## 0.1.0 (2026-11-27)
 
 First release. causalbase is the part of [fedcausal](https://github.com/ptorrijos99/fedcausal) that learns from data held in one place, made a package of its own; fedcausal 1.0.0 keeps the federated methods and depends on it. The history of the code up to the split is in fedcausal's changelog.
