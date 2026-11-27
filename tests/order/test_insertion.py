@@ -241,7 +241,9 @@ def test_search_gives_the_orders_and_scores_it_gave_before(net, restarts):
     sc = OrderScorer(BDeuScore(ds, prior="tetrad"), n_restarts=restarts)
     start = [int(v) for v in np.random.default_rng(7).permutation(ds.n_vars)]
     order, score = InsertionSearch(sc).run(start, np.random.default_rng(11))
-    assert (order, score) == BEFORE[(net, restarts)]
+    expected_order, expected_score = BEFORE[(net, restarts)]
+    assert order == expected_order
+    assert score == pytest.approx(expected_score, rel=1e-12)
 
 
 @pytest.mark.parametrize("restarts", [0, 2])

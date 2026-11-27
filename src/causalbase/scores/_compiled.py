@@ -49,7 +49,7 @@ __all__ = ["HAVE_NUMBA", "CompiledBDeu", "engine_of"]
 
 try:
     from llvmlite import ir
-    from numba import njit, prange, set_num_threads, types
+    from numba import config, njit, prange, set_num_threads, types
     from numba.extending import intrinsic
 
     HAVE_NUMBA = True
@@ -975,8 +975,9 @@ class CompiledBDeu:
         The parameter of the structure prior; None (or 0 with ``"tetrad"``)
         leaves the prior out.
     n_jobs : int, default=1
-        Threads for large batches of candidates. Each candidate is scored as
-        with one thread, so results do not depend on it.
+        Threads for large batches of candidates, at most
+        ``numba.config.NUMBA_NUM_THREADS``. Each candidate is scored as with
+        one thread, so results do not depend on it.
     prior : {"bernoulli", "tetrad"}, default="bernoulli"
         The structure prior.
     kernel : {"cells", "legacy"}, default="cells"
@@ -1079,7 +1080,8 @@ class CompiledBDeu:
         mc = int(cards.max())
         dense = 4 * n if dense_cells is None else int(dense_cells)
         self._dense_cells = dense
-        self._threads = max(1, int(n_jobs))
+        # numba refuses more threads than it started with (the number of cores by default).
+        self._threads = max(1, min(int(n_jobs), config.NUMBA_NUM_THREADS))  # type: ignore[attr-defined]
         self._hists = np.zeros((self._threads, 4, n + 1), dtype=np.int64)
         self._cnts = np.zeros((self._threads, max(dense, mc * mc)), dtype=np.int32)
         self._auxs = np.zeros((self._threads, 3, max(n, mc)), dtype=np.int64)

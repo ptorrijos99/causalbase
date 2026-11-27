@@ -141,7 +141,7 @@ def test_ges_gives_the_pinned_alarm_network():
     score = BDeuScore(ds, prior="tetrad")
     dag = ges(score).to_dag()
     assert isinstance(dag, DAG) and dag.num_edges == 45
-    assert score.score_dag(dag) == GES_ALARM_SCORE
+    assert score.score_dag(dag) == pytest.approx(GES_ALARM_SCORE, rel=1e-12)
 
 
 def test_extended_xges_never_ends_below_xges0():

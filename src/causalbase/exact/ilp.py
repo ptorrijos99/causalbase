@@ -130,6 +130,14 @@ def _sparse_candidates(
     return keep
 
 
+def _check_width(p: int) -> None:
+    if p > 64:
+        raise ValueError(
+            "parent sets are 64-bit masks over the other variables, "
+            f"so at most 64 variables; got {p}"
+        )
+
+
 def limited_candidates(
     score: BDeuScore | CompiledBDeu, v: int, max_size: int
 ) -> tuple[np.ndarray, np.ndarray, int]:
@@ -144,11 +152,7 @@ def limited_candidates(
     score = engine_of(score)
     data = score.data
     p = data.n_vars
-    if p > 64:
-        raise ValueError(
-            "parent sets are 64-bit masks over the other variables, "
-            f"so at most 64 variables; got {p}"
-        )
+    _check_width(p)
     if data.n_rows >= 2**15 or max(data.cardinalities) > 255:
         raise ValueError("the kernel counts in int16 and stores values in uint8")
     others = np.array([u for u in range(p) if u != v], dtype=np.int64)
@@ -200,13 +204,19 @@ def _ilp_search(
     result.
     """
     data = score.data
-    # PySCIPOpt is optional: typed when installed, Any (and these ignores unused) otherwise.
-    from pyscipopt import (  # type: ignore[attr-defined,unused-ignore]
-        SCIP_RESULT,
-        Conshdlr,
-        Model,
-        quicksum,
-    )
+    _check_width(data.n_vars)
+    try:
+        # PySCIPOpt is optional: typed when installed, Any (and these ignores unused) otherwise.
+        from pyscipopt import (  # type: ignore[attr-defined,unused-ignore]
+            SCIP_RESULT,
+            Conshdlr,
+            Model,
+            quicksum,
+        )
+    except ImportError as exc:
+        raise ImportError(
+            'exact_search with max_parents needs PySCIPOpt: pip install "causalbase[exact]"'
+        ) from exc
 
     p = data.n_vars
     t0 = time.perf_counter()

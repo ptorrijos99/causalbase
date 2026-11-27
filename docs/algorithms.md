@@ -128,8 +128,16 @@ OrderSearch(
 FLOP (Wienöbst, Henckel and Weichwald, 2026) is another search over orders, here on BDeu instead of the linear Gaussian score of the original. It differs from `OrderSearch` in the scorer and the moves. For each node it runs a non-greedy grow-shrink, warm-started from the node's previous parents: candidates are visited in random order and any that improves is added, then any parent whose removal improves is removed. Its local search reinserts every variable at its best position, visiting them in their current order, and its iterated search kicks the best order with `round(ln p)` random swaps, rebuilds the parent sets from scratch, and moves only to a strictly better order. It does not end its local searches with GES.
 
 ```python
-FLOP(ess=1.0, expected_parents=1.0, prior="bernoulli", init="ges",
-     max_iter=None, time_limit=60.0, random_state=None, n_jobs=1)
+FLOP(
+    ess=1.0,
+    expected_parents=1.0,
+    prior="bernoulli",
+    init="ges",
+    max_iter=None,
+    time_limit=60.0,
+    random_state=None,
+    n_jobs=1,
+)
 ```
 
 The implementation follows `flopsearch` 0.3.0. `n_iter_` counts kicks, and the function behind it, `causalbase.order.flop`, also returns the best order and the parent sets in `info`.
@@ -139,9 +147,18 @@ The implementation follows `flopsearch` 0.3.0. `n_iter_` counts kicks, and the f
 The classic score-based search over DAGs, as bnlearn's `hc` and `tabu`. From the empty graph, or from `initial_graph` in `causalbase.search.hill_climbing`, it applies the valid addition, deletion or reversal of an arc with the largest gain until none improves. Ties go to the move with the smallest index, so the search is deterministic. A move changes at most two families, so only their gains are scored again.
 
 ```python
-HillClimbing(ess=1.0, expected_parents=1.0, prior="bernoulli", tabu_length=0,
-             max_tabu_moves=0, n_restarts=0, perturbation=1, time_limit=None,
-             random_state=None, n_jobs=1)
+HillClimbing(
+    ess=1.0,
+    expected_parents=1.0,
+    prior="bernoulli",
+    tabu_length=0,
+    max_tabu_moves=0,
+    n_restarts=0,
+    perturbation=1,
+    time_limit=None,
+    random_state=None,
+    n_jobs=1,
+)
 ```
 
 | Option | Default | What it does |
@@ -158,8 +175,9 @@ A hill climb over DAGs stops at the first network no single arc change improves,
 The network of highest score, found by dynamic programming over subsets of variables (Silander and Myllymäki, 2006). For every node the score of every possible parent set is computed, and a set is kept only if it beats all its subsets. The best network over a set `W` of variables is then the best, over the variable `v` of `W` that comes last, of the best network over `W - v` plus the best parent set of `v` inside `W - v`. Most of the time goes into scoring the `2^(p-1)` parent sets of each node, and the search skips the supersets that a bound on BDeu proves cannot be useful.
 
 ```python
-ExactSearch(ess=1.0, expected_parents=1.0, prior="bernoulli",
-            max_parents=None, time_limit=None, n_jobs=1)
+ExactSearch(
+    ess=1.0, expected_parents=1.0, prior="bernoulli", max_parents=None, time_limit=None, n_jobs=1
+)
 ```
 
 Time and memory grow as `p 2^p`. The 20 variables of `child` take about eight minutes on one thread, most of it scoring parent sets, which `n_jobs` spreads over threads; 27 variables need about 6 GB of memory. The data must have fewer than 32768 rows and at most 255 levels per variable.
