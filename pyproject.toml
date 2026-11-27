@@ -1,27 +1,29 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
 name = "causalbase"
 # Read from `causalbase.__version__`, so the package and its metadata agree.
 dynamic = ["version"]
-description = "Causal structure learning from data in one place: GES, XGES and order-based search for BDeu"
+description = "Bayesian network structure learning and causal discovery: GES, XGES, order search, hill climbing and exact search"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Pablo Torrijos Arenas" }]
+license = "MIT"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Pablo Torrijos", email = "pablo.torrijos@uclm.es" }]
 keywords = [
   "causal discovery",
   "structure learning",
   "bayesian networks",
+  "greedy equivalence search",
   "BDeu",
   "order search",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -67,8 +69,11 @@ docs = [
   "pydata-sphinx-theme>=0.15",
   "numpydoc>=1.6",
   "sphinx-gallery>=0.15",
+  "sphinx-design>=0.5",
   "myst-parser>=2",
   "sphinx-copybutton>=0.5",
+  # sphinx-gallery imports it even when no example draws a figure.
+  "matplotlib",
 ]
 [tool.hatch.version]
 path = "src/causalbase/__init__.py"

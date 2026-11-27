@@ -1,75 +1,127 @@
 # causalbase
 
-Causal structure learning from data held in one place.
+[![CI](https://github.com/ptorrijos99/causalbase/actions/workflows/ci.yml/badge.svg)](https://github.com/ptorrijos99/causalbase/actions/workflows/ci.yml)
+[![Docs](https://github.com/ptorrijos99/causalbase/actions/workflows/docs.yml/badge.svg)](https://ptorrijos99.github.io/causalbase/)
+[![PyPI](https://img.shields.io/pypi/v/causalbase.svg)](https://pypi.org/project/causalbase/)
+[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ptorrijos99/causalbase/blob/main/LICENSE)
 
-| Estimator | Data |
-|---|---|
-| `GES` | Discrete (BDeu, BIC) or continuous (Gaussian BIC) |
-| `XGES` | The same, with a search that also removes and reverses edges as it goes |
-| `OrderSearch` | Discrete (BDeu, with the Bernoulli or Tetrad's structure prior), by iterated local search over variable orders |
-| `FLOP` | The same score, by FLOP's search over variable orders |
-| `HillClimbing` | The same score, by hill climbing or tabu search over DAGs |
-| `ExactSearch` | The same score: the best network, or the best one under a parent limit |
+Bayesian network structure learning and causal discovery in Python. causalbase learns, from a table of observations, the network of dependencies between its variables: the Markov equivalence class that greedy equivalence search returns, or a single DAG from a search over orders, over DAGs or an exact one. The scores and the graph routines run in compiled Numba code, so GES learns a network of a thousand variables in seconds.
 
-All follow scikit-learn's conventions: hyperparameters go to the constructor, `fit` learns, and results end in an underscore. `GES` scores categorical data by BDeu or BIC and continuous data by a Gaussian BIC, and its `score(X)`, the held-out log likelihood, lets scikit-learn's parameter searches tune it.
+| Estimator | Data | Search |
+|---|---|---|
+| `GES` | Discrete (BDeu, BIC) or continuous (Gaussian BIC) | Greedy equivalence search (Chickering, 2002) |
+| `XGES` | The same | Extremely greedy equivalence search (Nazaret and Blei, 2024), which also deletes and reverses edges as it goes |
+| `OrderSearch` | Discrete (BDeu) | Iterated local search over variable orders, each local search ended by GES or XGES |
+| `FLOP` | Discrete (BDeu) | FLOP's search over orders (Wienöbst, Henckel and Weichwald, 2026) |
+| `HillClimbing` | Discrete (BDeu) | Hill climbing or tabu search over DAGs, with restarts |
+| `ExactSearch` | Discrete (BDeu) | The network of highest score, by dynamic programming, or the best one under a parent limit, by integer programming |
+
+Every estimator follows scikit-learn's conventions (hyperparameters in the constructor, `fit` to learn, results ending in an underscore) without depending on it, so `clone`, `GridSearchCV` and pipelines work, and `score(X)` is the log likelihood of held-out rows. BDeu comes with two structure priors, a Bernoulli prior on each possible parent and Tetrad 7.6.5's, whose scores it reproduces.
+
+## Installation
 
 ```bash
 pip install causalbase
 ```
 
+causalbase needs Python 3.10 or later, NumPy, pandas and Numba. The integer program of `ExactSearch` under a parent limit also needs SCIP, through PySCIPOpt:
+
+```bash
+pip install "causalbase[exact]"
+```
+
+The kernels are compiled the first time they are used and cached on disk, so the first fit in a new environment takes a few seconds longer than the next ones.
+
+## Quick start
+
 ```python
 from causalbase import GES
 from causalbase.datasets import load_alarm
+from causalbase.metrics import shd
 
-data = load_alarm().data  # 37 variables, 5000 rows, bundled
+bundle = load_alarm()  # 37 variables, 5000 rows, bundled with the package
 
-model = GES().fit(data)  # also takes a DataFrame or an array
-model.adjacency_  # the learned CPDAG, with variable names
+model = GES().fit(bundle.data)  # also takes a DataFrame or an array
+model.adjacency_  # the learned CPDAG, with the variable names
+shd(bundle.truth, model.dag_)  # structural Hamming distance to the true network
 ```
 
-## Search over variable orders
+Every distinct value of a column is a level, so a numeric column is read as categories. Continuous data takes `GES(criterion="gaussian_bic")`.
 
-`OrderSearch` searches the space of variable orders under BDeu. An order is scored by the best network consistent with it (an exact, incremental greedy climb per node, restarted without the first parent each climb chose); an iterated local search moves through orders by insertions, and each local search ends with GES or XGES started from the order's network, so that arcs the order rules out can still be added.
+The searches over orders and over DAGs return one network:
 
 ```python
 from causalbase import OrderSearch
-from causalbase.datasets import load_alarm
 
-model = OrderSearch(polish="xges", time_limit=60).fit(load_alarm().data)
-model.adjacency_, model.score_
+model = OrderSearch(polish="xges", time_limit=60, random_state=0).fit(bundle.data)
+model.dag_, model.score_
 ```
 
-Every estimator on this score has a function behind it, which takes the score and returns a `SearchResult` (`dag`, `score`, `n_iter`, `trace`, `info`): `order_search` and `flop` in `causalbase.order`, `hill_climbing` in `causalbase.search`, and `exact_search` in `causalbase.exact`, which runs dynamic programming or, under a parent limit, integer programming (the ILP needs `pip install "causalbase[exact]"`). The score is a `BDeuScore`, which these functions evaluate with a compiled engine. Its structure prior is the Bernoulli prior by default; `BDeuScore(data, prior="tetrad")` gives Tetrad 7.6.5's prior instead (`k log p + (m - k) log(1 - p)` for `k` parents, with `p = expected_parents / m` and `m = n_rows - 1`), with Tetrad's absolute values. Every search, GES and XGES included, takes either score directly, and so does every estimator (`prior="tetrad"`).
+Behind each estimator on BDeu there is a function that takes the score and returns a `SearchResult` (`dag`, `score`, `n_iter`, `trace`, `info`), for those who want to choose the starting point, the limits or the score object themselves:
 
 ```python
-from causalbase.datasets import load_alarm
 from causalbase.order import order_search
 from causalbase.scores import BDeuScore
-from causalbase.search import ges
 
-score = BDeuScore(load_alarm().data, prior="tetrad")
-start = ges(score).to_dag()  # what order_search starts from by default
+score = BDeuScore(bundle.data, prior="tetrad")
 result = order_search(score, polish="xges", max_iter=20, random_state=0)
 result.dag, result.score, result.info["accepted"]
 ```
 
-The building blocks of the order searches (`OrderScorer`, `InsertionSearch`, `IteratedLocalSearch`, `pair_polish`) are in `causalbase.order` too, for those who want to combine them differently.
-
-Learning from data spread across sites that cannot share it is the job of [fedcausal](https://github.com/ptorrijos99/fedcausal), which builds on this package.
+`causalbase.order` also has the pieces the order searches are built from (`OrderScorer`, `InsertionSearch`, `IteratedLocalSearch`, `pair_polish`), and `causalbase.exact.exact_search`, `causalbase.order.flop` and `causalbase.search.hill_climbing` are the functions behind the other estimators.
 
 ## Speed
 
-GES runs in compiled code where it matters (counting, path checks, CPDAG completion) and re-scores only the part of the graph each step changes. On a laptop it learns `andes` (223 variables, 5000 rows) in under half a second and `munin` (1041 variables) in about 4 s, where causal-learn does not finish `andes` in half an hour. The [benchmarks](docs/benchmarks.md) have the full ladder.
+GES counts in compiled code, checks paths and completes the CPDAG over neighbour lists, and re-scores after each step only the part of the graph the step changed. On a laptop it learns `andes` (223 variables, 5000 rows) in under half a second and `munin` (1041 variables) in about 4 s; causal-learn's GES takes 53 s on `alarm` and does not finish `andes` in half an hour. The [benchmarks](https://ptorrijos99.github.io/causalbase/benchmarks.html) have the full tables, for every estimator.
 
 ## Documentation
 
-The user guide, the API reference and a gallery of examples that run with no setup build with Sphinx:
+- [Installation and quick start](https://ptorrijos99.github.io/causalbase/quickstart.html)
+- [Algorithms](https://ptorrijos99.github.io/causalbase/algorithms.html): what each search does and what its options change.
+- [API reference](https://ptorrijos99.github.io/causalbase/api.html)
+- [Examples](https://ptorrijos99.github.io/causalbase/auto_examples/index.html), which run on the bundled networks.
+- [Validation](https://ptorrijos99.github.io/causalbase/validation.html): what the test suite checks.
+
+Learning from data spread across sites that cannot share it is the job of [fedcausal](https://github.com/ptorrijos99/fedcausal), which is built on causalbase.
+
+## Development
 
 ```bash
-pip install -e ".[docs]"
-sphinx-build -b html docs docs/_build/html
+git clone https://github.com/ptorrijos99/causalbase
+cd causalbase
+pip install -e ".[dev]"
+pytest
 ```
+
+[CONTRIBUTING.md](https://github.com/ptorrijos99/causalbase/blob/main/CONTRIBUTING.md) has the checks a pull request must pass and how the tests are written; the documentation builds with `pip install -e ".[docs]"` and `sphinx-build -b html docs docs/_build/html`.
+
+## Citation
+
+If you use causalbase in a scientific publication, please cite:
+
+```bibtex
+@software{causalbase,
+  author = {Torrijos, Pablo},
+  title = {causalbase: Bayesian network structure learning and causal discovery},
+  year = {2026},
+  url = {https://github.com/ptorrijos99/causalbase}
+}
+```
+
+The same information is in [`CITATION.cff`](https://github.com/ptorrijos99/causalbase/blob/main/CITATION.cff), which GitHub shows as "Cite this repository".
+
+## References
+
+- Chickering, D. M. (1995). A transformational characterization of equivalent Bayesian network structures. *UAI '95*, 87-98.
+- Chickering, D. M. (2002). Optimal structure identification with greedy search. *Journal of Machine Learning Research*, 3, 507-554.
+- Silander, T., & Myllymäki, P. (2006). A simple approach for finding the globally optimal Bayesian network structure. *UAI '06*.
+- Cussens, J. (2011). Bayesian network learning with cutting planes. *UAI '11*.
+- Bartlett, M., & Cussens, J. (2017). Integer linear programming for the Bayesian network structure learning problem. *Artificial Intelligence*, 244, 258-271.
+- Ramsey, J., Glymour, M., Sanchez-Romero, R., & Glymour, C. (2017). A million variables and more: the Fast Greedy Equivalence Search algorithm for learning high-dimensional graphical causal models. *International Journal of Data Science and Analytics*, 3(2), 121-129.
+- Nazaret, A., & Blei, D. (2024). Extremely greedy equivalence search. *UAI 2024*, PMLR 244, 2716-2745.
+- Wienöbst, M., Henckel, L., & Weichwald, S. (2026). Embracing discrete search: A reasonable approach to causal structure learning. *ICLR 2026*.
 
 ## License
 
-MIT. Pablo Torrijos Arenas, Universidad de Castilla-La Mancha.
+MIT. See [LICENSE](https://github.com/ptorrijos99/causalbase/blob/main/LICENSE), and [NOTICE](https://github.com/ptorrijos99/causalbase/blob/main/NOTICE) for the bundled networks.

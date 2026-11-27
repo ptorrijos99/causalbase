@@ -1,0 +1,52 @@
+name: Publish to PyPI
+
+# Builds and uploads the release whose tag was just published on GitHub. The
+# upload uses PyPI's trusted publishing, so no token is stored: the PyPI
+# project must list this repository, this workflow and the `pypi` environment
+# as a trusted publisher.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: pip install build twine
+      - run: python -m build
+      - run: twine check --strict dist/*
+      # The version comes from causalbase.__version__, so a tag that disagrees
+      # with it would publish under the wrong number.
+      - name: Check that the tag matches the version
+        if: github.event_name == 'release'
+        run: |
+          version=$(grep -Po '^__version__ = "\K[^"]+' src/causalbase/__init__.py)
+          echo "causalbase $version, tag ${{ github.event.release.tag_name }}"
+          test "v$version" = "${{ github.event.release.tag_name }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/causalbase/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

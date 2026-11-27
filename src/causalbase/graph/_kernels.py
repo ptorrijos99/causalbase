@@ -299,7 +299,7 @@ def complete_marks(adj: np.ndarray, nbr: np.ndarray, deg: np.ndarray) -> tuple[n
     n_removed = 0
     while top > 0:
         top -= 1
-        x = stack[top]
+        x = int(stack[top])
         queued[x] = False
         if out[x] > 0:
             continue

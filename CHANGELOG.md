@@ -1,19 +1,36 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+All notable changes to causalbase are listed here. The project follows [semantic versioning](https://semver.org/); before 1.0.0, a minor release may change the API, and the changelog says how.
 
-The centralised part of fedcausal 0.3.0, as a package of its own. fedcausal 1.0.0 keeps only the federated methods and depends on this one; the history of everything here up to the split is in fedcausal's changelog.
+## 0.1.0 (2026-11-27)
 
-### Added
+First release. causalbase is the part of [fedcausal](https://github.com/ptorrijos99/fedcausal) that learns from data held in one place, made a package of its own; fedcausal 1.0.0 keeps the federated methods and depends on it. The history of the code up to the split is in fedcausal's changelog.
 
-- `causalbase.data`, `graph`, `scores`, `search`, `metrics`, `io` and `datasets`, with the API and results they had as `fedcausal.*` 1.0.0.
-- Four estimators on the compiled BDeu, all with `fit`, `dag_`, `cpdag_`, `adjacency_`, `score_`, `n_iter_`, `trace_` and a held-out `score(X)`: `OrderSearch` (iterated local search over variable orders polished by GES or XGES), `FLOP` (Wienöbst, Henckel and Weichwald, 2026), `HillClimbing` (hill climbing or tabu search over DAGs, with restarts) and `ExactSearch` (dynamic programming over subsets, or integer programming under a parent limit with the `exact` extra, pyscipopt). They take the score's `ess`, `expected_parents` and `prior` (the Bernoulli prior by default, `"tetrad"` for Tetrad's), as `GES` and `XGES` now do.
-- The functions behind them, each returning a `SearchResult(dag, score, n_iter, trace, info)`: `causalbase.order.order_search` and `flop`, `causalbase.search.hill_climbing` and `causalbase.exact.exact_search`. They take scikit-learn's `random_state`, `max_iter`, `n_restarts`, `time_limit` and `n_jobs`; an integer `random_state` seeds exactly as the prototypes' `seed` did, so their results are reproduced bit for bit. `order_search` and `flop` start by default from a topological order of GES's network on the same score.
-- `BDeuScore(data, *, ess=1.0, expected_parents=1.0, prior="bernoulli", n_jobs=1)`: `prior="tetrad"` is Tetrad 7.6.5's structure prior, `k log p + (m - k) log(1 - p)` per family with `p = expected_parents / m` and `m = n_rows - 1`, with Tetrad's absolute values (those of MCTS-BN); the default Bernoulli prior is unchanged. Both priors carry `n_jobs` and `n_families` (families scored by the compiled engine behind the order searches, hill climbing, FLOP and exact search, which now take either prior). `ges` and `xges` take a `BDeuScore(prior="tetrad")` directly and search it through the Bernoulli BDeu with the same `p`, whose differences between families are the same. `make_score("bdeu", data, prior=...)` builds either.
-- The building blocks of the order searches in `causalbase.order`: `OrderScorer` (the best network consistent with an order, by an exact incremental greedy climb per node, optionally with `n_restarts`), `InsertionSearch`, `IteratedLocalSearch` and `pair_polish` (parents that only help together).
-- `causalbase.metrics.graph_record`, everything worth storing about a learned network.
+### Estimators
 
-### Changed
+- `GES` and `XGES`, greedy equivalence search (Chickering, 2002) and extremely greedy equivalence search (Nazaret and Blei, 2024), on BDeu, BIC or Gaussian BIC, with required and forbidden adjacencies, a parent cap and the one-edge-faithfulness screen of fGES. `XGES(extended=False)` is XGES-0.
+- `OrderSearch`: iterated local search over variable orders, scoring each order by the best network consistent with it and ending each local search with GES or XGES started from that network, so that arcs the order rules out can still be added.
+- `FLOP`: the search over orders of Wienöbst, Henckel and Weichwald (2026), on BDeu.
+- `HillClimbing`: hill climbing or tabu search over DAGs, with random restarts.
+- `ExactSearch`: the network of highest score by dynamic programming over subsets (Silander and Myllymäki, 2006), or the best one under a parent limit by integer programming with SCIP (the `exact` extra), which needs at most 64 variables.
+- All of them follow scikit-learn's parameter protocol without depending on it, have `dag_`, `cpdag_`, `adjacency_`, `score_`, `n_iter_` and `trace_` after `fit`, and score held-out rows by their log likelihood with `score(X)`.
 
-- `ges(score, initial_graph=None, ...)` and `xges(...)` take the number of variables from `score.n_vars`, which the `Score` protocol now includes, instead of a second positional argument.
-- The base exception is `CausalBaseError` (fedcausal's `FedCausalError` is an alias of it, so existing `except` clauses keep working).
+### Functions and building blocks
+
+- The functions behind the estimators on BDeu, each returning a `SearchResult(dag, score, n_iter, trace, info)`: `causalbase.order.order_search` and `flop`, `causalbase.search.hill_climbing` and `causalbase.exact.exact_search`. They take `random_state`, `max_iter`, `n_restarts`, `time_limit` and `n_jobs` with scikit-learn's meaning, and the order searches start by default from a topological order of the network GES learns on the same score.
+- `causalbase.order.OrderScorer` (the best network consistent with an order, by an exact and incremental greedy climb per node), `InsertionSearch`, `IteratedLocalSearch` and `pair_polish` (parents that only help together).
+- `ges(score, initial_graph=None, ...)` and `xges(...)` run either phase alone, from any starting graph, restricted to candidate pairs if given.
+
+### Scores
+
+- `BDeuScore(data, *, ess=1.0, expected_parents=1.0, prior="bernoulli", n_jobs=1)`. The default Bernoulli structure prior gives each possible parent the probability `expected_parents / (n_vars - 1)`; `prior="tetrad"` is Tetrad 7.6.5's prior, `k log p + (m - k) log(1 - p)` with `p = expected_parents / m` and `m = n_rows - 1`, with Tetrad's absolute values. Every search takes either prior, and `make_score("bdeu", data, prior=...)` builds both.
+- `BICScore` and `GaussianBICScore`, and `log_likelihood(dag, train, test)`, the held-out likelihood behind `score(X)`.
+- A compiled engine scores the families of the order searches, hill climbing, FLOP and exact search, with the same values as `BDeuScore`.
+
+### Data, graphs and metrics
+
+- `causalbase.data`: `DiscreteDataset` and `ContinuousDataset`, and one encoding shared by several tables (`as_discrete_sites`).
+- `causalbase.graph`: `DAG`, `PDAG`, the CPDAG of a DAG, Meek's rules, moralization, triangulation, maximal cliques and treewidth.
+- `causalbase.metrics`: SHD, SMHD, the precision and recall of edges and skeletons, and `graph_record`, everything worth storing about a learned network.
+- `causalbase.io`: XMLBIF networks and forward sampling. `causalbase.datasets`: five networks of the Bayesian Network Repository with a sample of 5000 rows each.
+- The base exception is `CausalBaseError`; fedcausal's `FedCausalError` is an alias of it.

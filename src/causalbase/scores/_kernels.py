@@ -158,7 +158,7 @@ def _count_bits(
                 if a < cx - 1:
                     c = 0
                     for w in range(words):
-                        c += _popcount(cell_bits[cell, w] & x_bits[x_first + a, w])
+                        c += _popcount(cell_bits[cell, w] & x_bits[x_first + a, w])  # type: ignore[call-arg]
                     rest -= c
                 else:
                     c = rest

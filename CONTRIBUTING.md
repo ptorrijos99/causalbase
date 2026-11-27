@@ -1,5 +1,7 @@
 # Contributing
 
+Bug reports, fixes and new methods are welcome. Use the [issue tracker](https://github.com/ptorrijos99/causalbase/issues) for bugs and proposals, with a minimal script that reproduces a bug; report security problems privately, as [SECURITY.md](SECURITY.md) says. Everyone taking part is expected to follow the [code of conduct](CODE_OF_CONDUCT.md).
+
 ## Getting set up
 
 ```bash
@@ -53,3 +55,11 @@ Ruff handles formatting and import order, so do not argue with it.
 Docstrings follow the numpydoc convention. Full parameter blocks on the public API, one line when the signature already says everything. Explain why something is the way it is when that is not obvious; do not restate what the code says.
 
 Development history belongs in commit messages and pull requests, not in source comments. If you need to record why a decision was reversed, the commit is the place.
+
+## Releasing
+
+1. Set `__version__` in `src/causalbase/__init__.py`, and `version` and `date-released` in `CITATION.cff`.
+2. Give the release its section in `CHANGELOG.md`, dated.
+3. Commit, tag `vX.Y.Z` and push the tag.
+4. Publish a GitHub release from the tag. `publish.yml` builds the package, checks that the tag matches `__version__` and uploads it to PyPI by trusted publishing; `docs.yml` publishes the documentation.
+5. Archive the release on Zenodo with the metadata of `.zenodo.json`, as a new version of the existing record, so that the concept DOI keeps resolving to the latest release.

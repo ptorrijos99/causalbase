@@ -1,0 +1,27 @@
+name: Bug report
+description: A wrong result, an error or a warning that should not happen
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Minimal reproducer
+      description: A short, self-contained script that shows the problem, on a bundled network (`causalbase.datasets`) if possible.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: Output of `python -c "import causalbase, numba, numpy, pandas, sys; print(causalbase.__version__, numba.__version__, numpy.__version__, pandas.__version__, sys.version)"` and your operating system.
+      render: text
+    validations:
+      required: true

@@ -1,8 +1,44 @@
 # Benchmarks
 
-Measured on one laptop with the default settings, 5000 rows per network, from the [Bayesian Network Repository](https://www.bnlearn.com/bnrepository/). Structures are exact; timings are not, so read them as orders of magnitude.
+Measured on one laptop, with 5000 rows per network sampled from networks of the [Bayesian Network Repository](https://www.bnlearn.com/bnrepository/). Structures and scores are exact; timings are not, so read them as orders of magnitude.
 
-## How fast, and how close to the truth
+## Every estimator on the bundled networks
+
+The five networks in `causalbase.datasets`, each with its bundled sample, with the default settings except where noted: `OrderSearch` and `FLOP` with `max_iter=20, random_state=0` and no time limit, tabu search with `tabu_length=100, max_tabu_moves=100`, and `ExactSearch` only up to `child`. All share the BDeu score with the default prior, so `score_` compares them directly:
+
+| Network | Variables | GES | XGES | Hill climbing | Tabu | OrderSearch | FLOP | Exact |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| cancer | 5 | -10406.1 | -10406.1 | -10406.1 | -10406.1 | -10406.1 | -10406.1 | -10406.1 |
+| asia | 8 | -11292.4 | -11292.4 | -11292.4 | -11292.4 | -11292.4 | -11292.4 | -11292.4 |
+| child | 20 | -62114.4 | -62114.4 | -62428.0 | -62217.5 | -62114.4 | -62114.4 | -62114.4 |
+| insurance | 27 | -67131.2 | -67098.0 | -67277.4 | -67277.4 | -67067.3 | -67067.3 | |
+| alarm | 37 | -53644.3 | -53504.7 | -53993.6 | -53704.0 | -53504.7 | -53504.7 | |
+
+The SHD between the learned and the true CPDAG, which does not depend on the member of the class a search returns:
+
+| Network | GES | XGES | Hill climbing | Tabu | OrderSearch | FLOP | Exact |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| cancer | 4 | 4 | 4 | 4 | 4 | 4 | 4 |
+| asia | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| child | 0 | 0 | 15 | 4 | 0 | 0 | 0 |
+| insurance | 25 | 15 | 28 | 28 | 13 | 13 | |
+| alarm | 11 | 4 | 36 | 15 | 4 | 4 | |
+
+And the seconds each took, after a warm-up fit so that compilation is not counted:
+
+| Network | GES | XGES | Hill climbing | Tabu | OrderSearch | FLOP | Exact |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| cancer | 0.00 | 0.01 | 0.00 | 0.01 | 0.03 | 0.01 | 0.02 |
+| asia | 0.01 | 0.03 | 0.00 | 0.01 | 0.11 | 0.03 | 0.22 |
+| child | 0.04 | 0.30 | 0.01 | 0.03 | 0.59 | 0.25 | 472 |
+| insurance | 0.06 | 1.14 | 0.02 | 0.04 | 1.80 | 1.34 | |
+| alarm | 0.06 | 0.46 | 0.03 | 0.09 | 3.73 | 2.83 | |
+
+On the three smallest networks GES already reaches the optimum that `ExactSearch` proves. On `insurance` and `alarm` the searches over orders find networks of higher score than GES, closer to the true ones, in a few seconds; XGES matches them on `alarm` in a fraction of that time. Hill climbing over DAGs is the fastest and stops lowest, and tabu search recovers part of the difference on `child` and `alarm`.
+
+## GES on larger networks
+
+GES with the default settings on one sample of each network, with the SHD and SMHD between the learned and the true DAG:
 
 | Network | Variables | Seconds | Edges | True edges | SHD | SMHD |
 |---|---:|---:|---:|---:|---:|---:|
@@ -59,7 +95,7 @@ On linear Gaussian data from random graphs (the setting of Nazaret and Blei: Erd
 
 ## Against earlier releases
 
-The same data and the same structure prior through 0.1.0 and 0.2.0, on the same machine:
+GES and its scores were part of fedcausal until they moved here. The same data and the same structure prior through fedcausal 0.1.0 and 0.2.0, on the same machine:
 
 | Network | Variables | 0.1.0 (s) | 0.2.0 (s) | Speedup |
 |---|---:|---:|---:|---:|
@@ -72,9 +108,9 @@ The same data and the same structure prior through 0.1.0 and 0.2.0, on the same 
 
 Both versions learn structures with the same number of edges and the same BDeu score on every network in the table. The prior was 0.1.0's default, one parent expected per `n_rows - 1` candidates, which 0.2.0 expresses as `expected_parents=(n_vars - 1) / (n_rows - 1)`.
 
-1.0.0 counts families without sorting rows and completes the CPDAG over neighbour lists. With the same prior, measured back to back:
+fedcausal 0.3.0, whose GES is the one in causalbase, counts families without sorting rows and completes the CPDAG over neighbour lists. With the same prior, measured back to back:
 
-| Network | Variables | 0.2.0 (s) | 1.0.0 (s) | Speedup |
+| Network | Variables | 0.2.0 (s) | 0.3.0 (s) | Speedup |
 |---|---:|---:|---:|---:|
 | pathfinder | 109 | 0.62 | 0.42 | 1.5x |
 | diabetes | 413 | 7.9 | 2.8 | 2.8x |

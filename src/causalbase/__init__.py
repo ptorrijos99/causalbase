@@ -1,4 +1,4 @@
-"""Causal structure learning from data held in one place.
+"""Bayesian network structure learning and causal discovery.
 
 Six estimators cover the common cases:
 

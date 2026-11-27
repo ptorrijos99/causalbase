@@ -19,8 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from causalbase import __version__  # noqa: E402
 
 project = "causalbase"
-author = "Pablo Torrijos Arenas"
-copyright = "2026, Pablo Torrijos Arenas"  # noqa: A001
+author = "Pablo Torrijos"
+copyright = "2026, Pablo Torrijos"  # noqa: A001
 version = __version__
 release = __version__
 
@@ -31,23 +31,30 @@ extensions = [
     "sphinx.ext.viewcode",
     "numpydoc",
     "myst_parser",
+    "sphinx_design",
     "sphinx_gallery.gen_gallery",
     "sphinx_copybutton",
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "_templates", "superpowers", "Thumbs.db", ".DS_Store"]
 
 # -- Autodoc / numpydoc -----------------------------------------------------
 
 autodoc_default_options = {
     "members": True,
-    "imported-members": True,
-    "show-inheritance": True,
+    "inherited-members": True,
     "member-order": "bysource",
 }
-autodoc_typehints = "description"
+autodoc_typehints = "none"
 autosummary_generate = True
+# ges and GES, flop and FLOP would share one stub file on a case-insensitive
+# file system.
+autosummary_filename_map = {
+    "causalbase.search.ges": "causalbase.search.ges_function",
+    "causalbase.search.xges": "causalbase.search.xges_function",
+    "causalbase.order.flop": "causalbase.order.flop_function",
+}
 
 # numpydoc would otherwise emit a second, undocumented entry for every class
 # attribute and method, which autodoc has already rendered.
@@ -59,6 +66,7 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable", None),
     "pandas": ("https://pandas.pydata.org/docs", None),
     "scipy": ("https://docs.scipy.org/doc/scipy", None),
+    "sklearn": ("https://scikit-learn.org/stable", None),
 }
 
 # -- Gallery ----------------------------------------------------------------
@@ -71,7 +79,7 @@ sphinx_gallery_conf = {
     "remove_config_comments": True,
     "show_signature": False,
     "download_all_examples": False,
-    # The examples draw no figures, so the build does not need matplotlib.
+    # The examples draw no figures.
     "image_scrapers": (),
 }
 
@@ -83,9 +91,16 @@ html_theme_options = {
     "github_url": "https://github.com/ptorrijos99/causalbase",
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "show_prev_next": False,
+    "show_toc_level": 2,
     "footer_start": ["copyright"],
 }
-html_context = {"default_mode": "auto"}
+html_context = {
+    "default_mode": "auto",
+    "github_user": "ptorrijos99",
+    "github_repo": "causalbase",
+    "github_version": "main",
+    "doc_path": "docs",
+}
 
 myst_enable_extensions = ["colon_fence", "deflist"]
 # The Markdown pages carry their own top-level heading, so let MyST turn the

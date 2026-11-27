@@ -1,6 +1,6 @@
 # Bring your own data
 
-`GES` and `XGES` take fully observed categorical or numeric data. Neither handles missing values.
+Every estimator takes fully observed categorical data, and `GES` and `XGES` also take continuous data with `criterion="gaussian_bic"`. None of them handles missing values.
 
 ## Tables the estimators accept
 
@@ -26,6 +26,14 @@ data = DiscreteDataset.from_csv("cohort.csv")  # .csv.gz works too
 ```
 
 `from_csv` reads every value as a label, including `None`, `NA` and `NaN`, which several standard benchmark networks use as real levels. Only an empty or blank field counts as missing, and that raises. Pandas' own reader, by contrast, turns those strings into missing values unless told otherwise (`keep_default_na=False`).
+
+## Continuous data
+
+```python
+GES(criterion="gaussian_bic").fit(frame)  # every column numeric
+```
+
+The Gaussian BIC scores a linear Gaussian model of each node given its parents, from the covariance matrix, so the columns are read as numbers and nothing is discretised. `causalbase.data.ContinuousDataset.from_csv` and `as_continuous` build the dataset explicitly. The searches on BDeu need categorical data; discretise continuous columns before passing them.
 
 ## Encoding several tables at once
 

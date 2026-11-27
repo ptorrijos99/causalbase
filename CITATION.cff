@@ -1,26 +1,34 @@
 cff-version: 1.2.0
-title: "causalbase: causal structure learning"
-message: "If you use this software, please cite it as below."
+message: "If you use causalbase in a scientific publication, please cite it as below."
+title: "causalbase: Bayesian network structure learning and causal discovery"
 type: software
 authors:
-  - family-names: "Torrijos"
-    given-names: "Pablo"
+  - family-names: Torrijos
+    given-names: Pablo
+    email: pablo.torrijos@uclm.es
     affiliation: "Universidad de Castilla-La Mancha"
+    orcid: "https://orcid.org/0000-0002-8395-3848"
+version: "0.1.0"
+date-released: "2026-11-27"
 repository-code: "https://github.com/ptorrijos99/causalbase"
+url: "https://ptorrijos99.github.io/causalbase/"
 license: MIT
-version: 0.1.0
 abstract: >-
-  A Python library for causal structure learning from data held in one place:
-  greedy equivalence search (GES) and XGES over BDeu, BIC or Gaussian BIC,
-  with compiled scores, graph kernels, metrics, XMLBIF input and output, and
-  bundled benchmark networks. The federated methods of fedcausal build on it.
+  A Python library for learning the structure of Bayesian networks, and the
+  causal structure behind them, from data held in one place: greedy
+  equivalence search (GES) and XGES over BDeu, BIC or Gaussian BIC, iterated
+  local search over variable orders, FLOP, hill climbing and tabu search over
+  DAGs, and exact search by dynamic programming or integer programming. The
+  scores and graph routines are compiled; structural metrics, XMLBIF input,
+  forward sampling and five benchmark networks are included. The federated
+  methods of fedcausal build on it.
 keywords:
   - causal discovery
   - structure learning
   - Bayesian networks
   - greedy equivalence search
   - BDeu
-
+  - order search
 references:
   - type: article
     title: "Optimal structure identification with greedy search"

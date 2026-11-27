@@ -1,13 +1,16 @@
 causalbase is licensed under the MIT License (see LICENSE).
 
-Test data
----------
+Bundled networks
+----------------
 
-`tests/fixtures/networks/` contains sampled datasets and network definitions
-for five Bayesian networks from the public Bayesian Network Repository (asia,
-cancer, child, insurance, alarm). They are included so the test suite runs
-without external downloads, and are used for testing only -- no causalbase code
-depends on them at run time, and they are excluded from the distributed package
-(the wheel packages only `src/causalbase`).
+`src/causalbase/datasets/data/` holds the definitions of five Bayesian
+networks from the Bayesian Network Repository (cancer, asia, child, insurance
+and alarm), in XMLBIF, and one sample of 5000 rows drawn from each. They ship
+with the package so that `causalbase.datasets`, the examples and the
+documentation work without downloads.
+
+`tests/fixtures/samples/` holds further samples of 5000 rows, and some of the
+same network definitions, for the test suite only; they are not part of the
+wheel.
 
 Bayesian Network Repository: https://www.bnlearn.com/bnrepository/
