@@ -12,7 +12,7 @@ from causalbase._base import is_frame
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
-    from typing import TypeAlias
+    from typing import IO, TypeAlias
 
     import numpy.typing as npt
     import pandas as pd
@@ -221,7 +221,7 @@ class DiscreteDataset:
         return cls(values, np.array([len(lv) for lv in levels]), names, levels)
 
     @classmethod
-    def from_csv(cls, path: str | Path) -> DiscreteDataset:
+    def from_csv(cls, path: str | Path | IO[bytes]) -> DiscreteDataset:
         """Build a dataset from a CSV file of categorical columns.
 
         A header row of variable names, then one row per observation. Every
@@ -231,8 +231,9 @@ class DiscreteDataset:
 
         Parameters
         ----------
-        path : str or pathlib.Path
-            Path to the CSV file.
+        path : str, pathlib.Path or binary file object
+            Path to the CSV file (``.csv.gz`` is decompressed), or the file
+            itself, opened in binary mode.
 
         Returns
         -------

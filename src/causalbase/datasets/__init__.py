@@ -1,4 +1,4 @@
-"""Small Bayesian networks bundled with the package, for examples and tests.
+"""Benchmark networks with data sampled from them: five bundled, 226 to download.
 
 Five networks from the public `Bayesian Network Repository
 <https://www.bnlearn.com/bnrepository/>`_ ship inside ``causalbase``, each as a
@@ -17,18 +17,21 @@ re-indexed onto the dataset's column order: the ``.xbif`` file declares its own
 variable order, which need not match the CSV's, and comparing without
 re-indexing silently compares the wrong nodes.
 
-For anything larger than ``alarm``, bring your own data (see
-``DiscreteDataset.from_csv``) or sample from a network you load yourself with
-:func:`causalbase.io.load_xbif`.
+:func:`fetch_network` gives 100 samples of 5000 rows of each of the 24
+discrete networks of that repository and of the 202 of bnRep
+(:func:`list_remote_networks`), downloaded from Zenodo the first time they are
+asked for and read from a local cache afterwards (:func:`get_data_home`).
 """
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from importlib.resources import as_file, files
 from typing import TYPE_CHECKING
 
 from causalbase.data import DiscreteDataset
+from causalbase.datasets._remote import fetch, get_data_home, list_remote_networks
 from causalbase.graph import DAG
 from causalbase.io import load_xbif
 
@@ -37,7 +40,10 @@ if TYPE_CHECKING:
 
 __all__ = [
     "NetworkBundle",
+    "fetch_network",
+    "get_data_home",
     "list_networks",
+    "list_remote_networks",
     "load_alarm",
     "load_asia",
     "load_cancer",
@@ -58,7 +64,7 @@ _NETWORKS: dict[str, int] = {
 
 @dataclass(frozen=True)
 class NetworkBundle:
-    """A bundled network, its true structure, and data sampled from it.
+    """A network, its true structure, and data sampled from it.
 
     Attributes
     ----------
@@ -135,6 +141,63 @@ def load_network(name: str) -> NetworkBundle:
     with as_file(root / f"{name}.xbif") as xbif_path:
         network = load_xbif(xbif_path)
 
+    return _bundle(name, data, network)
+
+
+def fetch_network(
+    name: str, sample: int = 0, *, data_home: str | os.PathLike[str] | None = None
+) -> NetworkBundle:
+    """Download one sample of a bnlearn or bnRep network, with the network itself.
+
+    The samples are 100 of 5000 rows for each of the 24 discrete networks of
+    bnlearn's Bayesian Network Repository (Zenodo, `10.5281/zenodo.14917795
+    <https://doi.org/10.5281/zenodo.14917795>`_) and of the 202 of bnRep
+    (`10.5281/zenodo.23561524 <https://doi.org/10.5281/zenodo.23561524>`_).
+    The first call downloads the network's file and checks it; every later
+    call reads the cache in :func:`get_data_home`. Zenodo serves whole files,
+    so the first sample of a network brings all 100 (from a few hundred kB to
+    200 MB for ``munin``), and bnRep groups its networks of up to 20 variables
+    into four files by size.
+
+    Parameters
+    ----------
+    name : str
+        A key of :func:`list_remote_networks`. bnRep's names carry the prefix
+        ``bnrep_`` (``"bnrep_earthquake"`` is bnRep's network of 40
+        variables, ``"earthquake"`` bnlearn's of 5).
+    sample : int, default=0
+        Which of the 100 samples, from 0 to 99.
+    data_home : str or path-like, optional
+        Folder of the cache; see :func:`get_data_home`.
+
+    Returns
+    -------
+    NetworkBundle
+        The sample, the true structure indexed like its columns, and the
+        network.
+
+    Raises
+    ------
+    ValueError
+        If `name` or `sample` is not one of those available.
+    OSError
+        If a download fails or does not match its checksum; nothing is left
+        in the cache then.
+
+    Examples
+    --------
+    >>> from causalbase import GES
+    >>> from causalbase.datasets import fetch_network
+    >>> from causalbase.metrics import shd
+    >>> bundle = fetch_network("hepar2", sample=7)  # doctest: +SKIP
+    >>> shd(bundle.truth, GES().fit(bundle.data).dag_)  # doctest: +SKIP
+    """
+    data, network = fetch(name, sample, data_home)
+    return _bundle(name, data, network)
+
+
+def _bundle(name: str, data: DiscreteDataset, network: DiscreteBN) -> NetworkBundle:
+    """Encode `data` with the network's levels and index the network's DAG like its columns."""
     # A level the sample happens not to contain is still a level of the
     # network, so the encoding takes its levels from the network rather than
     # from the data, as forward_sample does.
@@ -142,7 +205,7 @@ def load_network(name: str) -> NetworkBundle:
     levels = {var: sorted(levels) for var, levels in outcomes.items()}
     data = DiscreteDataset.from_pandas(data.to_pandas(), [levels[var] for var in data.names])
 
-    # The .xbif declares its own variable order, which need not match the CSV's.
+    # The network file declares its own variable order, which need not match the CSV's.
     index = {var: i for i, var in enumerate(data.names)}
     truth = DAG.from_edges(
         data.n_vars,

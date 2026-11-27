@@ -70,6 +70,7 @@ quickstart
 :caption: User guide
 
 bring-your-own-data
+datasets
 algorithms
 auto_examples/index
 ```

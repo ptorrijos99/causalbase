@@ -9,6 +9,11 @@ and alarm), in XMLBIF, and one sample of 5000 rows drawn from each. They ship
 with the package so that `causalbase.datasets`, the examples and the
 documentation work without downloads.
 
+`causalbase.datasets.fetch_network` downloads the networks of the Bayesian
+Network Repository and of bnRep (https://github.com/manueleleonelli/bnRep), with
+samples drawn from them, from Zenodo and GitHub when they are asked for; none of
+them is part of the package.
+
 `tests/fixtures/samples/` holds further samples of 5000 rows, and some of the
 same network definitions, for the test suite only; they are not part of the
 wheel.

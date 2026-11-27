@@ -2,6 +2,14 @@
 
 All notable changes to causalbase are listed here. The project follows [semantic versioning](https://semver.org/); before 1.0.0, a minor release may change the API, and the changelog says how.
 
+## 0.2.0 (unreleased)
+
+### Added
+
+- `causalbase.datasets.fetch_network(name, sample)` downloads one of the 100 samples of 5000 rows of 226 benchmark networks, the 24 discrete networks of bnlearn's repository and the 202 of bnRep, from their Zenodo records (10.5281/zenodo.14917795 and 10.5281/zenodo.23561524, at pinned versions), with the network itself, and keeps the files in a local cache (`get_data_home`). Every download is checked against its checksum, and an interrupted one leaves nothing in the cache. `list_remote_networks` lists them with their number of variables.
+- `causalbase.io.load_bif` and `parse_bif` read networks in BIF, the text format of both repositories, into the `DiscreteBN` that `load_xbif` gives; on the 221 networks published in both formats, the two readers give the same states, parents and tables.
+- `DiscreteDataset.from_csv` also takes a file opened in binary mode.
+
 ## 0.1.0 (2026-11-27)
 
 First release. causalbase is the part of [fedcausal](https://github.com/ptorrijos99/fedcausal) that learns from data held in one place, made a package of its own; fedcausal 1.0.0 keeps the federated methods and depends on it. The history of the code up to the split is in fedcausal's changelog.

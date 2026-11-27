@@ -86,7 +86,11 @@ path = "src/causalbase/__init__.py"
 packages = ["src/causalbase"]
 # The bundled networks are package data, so they must be named or the wheel
 # ships loaders with nothing to load.
-artifacts = ["src/causalbase/datasets/data/*.xbif", "src/causalbase/datasets/data/*.csv.gz"]
+artifacts = [
+  "src/causalbase/datasets/data/*.xbif",
+  "src/causalbase/datasets/data/*.csv.gz",
+  "src/causalbase/datasets/remote.json",
+]
 
 [tool.ruff]
 line-length = 100
