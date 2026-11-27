@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from causalbase.order import FLOP, OrderSearch
     from causalbase.search import GES, XGES, HillClimbing
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "DAG",

@@ -1,7 +1,7 @@
 {
   "title": "causalbase: Bayesian network structure learning and causal discovery",
   "upload_type": "software",
-  "description": "<p>causalbase learns the structure of Bayesian networks from data. It implements greedy equivalence search (GES) and XGES with BDeu, BIC or Gaussian BIC, iterated local search over variable orders, FLOP, hill climbing and tabu search over DAGs, and exact search by dynamic programming or integer programming. Scores and graph routines are compiled with Numba. Structural metrics, XMLBIF input, forward sampling and five benchmark networks are included. fedcausal, which learns from data split across sites, is built on it.</p>",
+  "description": "<p>causalbase learns the structure of Bayesian networks from data. Every search takes every score: BDeu or BIC on categorical data, the Gaussian BIC or BGe on continuous data. The searches are greedy equivalence search (GES) and XGES, iterated local search over variable orders, FLOP, hill climbing and tabu search over DAGs, and exact search by dynamic programming or integer programming; RCD, HC-LiNGAM and HC learn linear non-Gaussian models from higher-order cumulants. Scores and graph routines are compiled with Numba. Structural metrics, BIF and XMLBIF input, forward sampling, five bundled benchmark networks and the download of 226 more from Zenodo are included. fedcausal, which learns from data split across sites, is built on it.</p>",
   "creators": [
     {
       "name": "Torrijos, Pablo",

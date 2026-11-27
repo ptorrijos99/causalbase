@@ -2,7 +2,7 @@
 
 All notable changes to causalbase are listed here. The project follows [semantic versioning](https://semver.org/); before 1.0.0, a minor release may change the API, and the changelog says how.
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-11-27)
 
 Every search takes every score, every score runs on compiled kernels, and the six estimators and their functions share one interface, which breaks the API of 0.1.0 as listed below. BGe is new, and RCD and the other cumulant methods for linear non-Gaussian models move here from fedcausal.
 
