@@ -43,6 +43,7 @@ returns a :class:`~causalbase.search.SearchResult`.
    order.FLOP
    search.HillClimbing
    exact.ExactSearch
+   lingam.RCD
 
 Search functions
 ================
@@ -83,6 +84,35 @@ Building blocks of the order searches
    :template: function.rst
 
    order.pair_polish
+
+Cumulant methods
+================
+
+The functions behind :class:`~causalbase.lingam.RCD`. Each takes the
+statistics, not the data, except :func:`~causalbase.lingam.rcd_exact`.
+``Cumulants`` and ``MomentSums`` are the dictionaries they pass around,
+``Pruning`` and ``LambdaSelection`` the values of the estimator's options of
+the same names.
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   lingam.moment_sums
+   lingam.cumulants_from_sums
+   lingam.rcd
+   lingam.rcd_exact
+   lingam.exact_order
+   lingam.tau_matrix_3rd
+   lingam.tau_matrix_4th
+   lingam.estimate_b_from_cov
+   lingam.estimate_b_lasso_from_cov
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   lingam.RCDResult
 
 Scores
 ======

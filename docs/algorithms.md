@@ -2,7 +2,7 @@
 
 What each estimator does, what its options change, and how it is made fast. The measurements behind the defaults are in [Benchmarks](benchmarks.md).
 
-GES and XGES search the space of Markov equivalence classes and return a CPDAG. The other four search over variable orders or over DAGs, return one DAG, and score categorical data with BDeu only; `cpdag_` is then the class of that DAG.
+GES and XGES search the space of Markov equivalence classes and return a CPDAG. OrderSearch, FLOP, HillClimbing and ExactSearch search over variable orders or over DAGs, return one DAG, and score categorical data with BDeu only; `cpdag_` is then the class of that DAG. RCD learns a linear model from continuous data through its higher-order cumulants, without a score.
 
 ## Scores and structure priors
 
@@ -183,3 +183,36 @@ ExactSearch(
 Time and memory grow as `p 2^p`. The 20 variables of `child` take about eight minutes on one thread, most of it scoring parent sets, which `n_jobs` spreads over threads; 27 variables need about 6 GB of memory. The data must have fewer than 32768 rows and at most 255 levels per variable.
 
 With `max_parents`, the search is an integer program in the style of GOBNILP (Cussens, 2011; Bartlett and Cussens, 2017), solved with SCIP through PySCIPOpt (`pip install "causalbase[exact]"`): one binary variable per candidate parent set of at most `max_parents` variables, exactly one chosen per node, and acyclicity imposed by cluster constraints, added when a solution violates them. SCIP starts from the best network consistent with the order GES learns. The result is optimal among the DAGs whose families have at most `max_parents` parents, and the global optimum only if no larger family would have been a candidate, which is not checked. Parent sets are 64-bit masks, so this search takes at most 64 variables. With `time_limit` it returns the best network SCIP found in time, and the function behind it, `causalbase.exact.exact_search`, says in `info["status"]` whether it was proved optimal.
+
+## RCD
+
+Unlike the searches above, `RCD` scores no graph. It assumes a linear structural equation model `x = Bx + e` with `B` acyclic and non-Gaussian noise, which makes the causal order identifiable, and reads that order off the third- and fourth-order cumulants of the data. Under Gaussian noise every DAG of a Markov equivalence class fits the data equally well and no method of this kind can recover the order, so such data are better left to `GES(criterion="gaussian_bic")`.
+
+```python
+RCD(method="deflation", order=4, pruning="adaptive_lasso", lambda_selection="bic")
+```
+
+The data are read once, into moment sums about the column means, and from them into unbiased cumulant estimates (the k-statistics). For a pair of variables, a tau discriminator measures how much their joint cumulants depart from what they would be if the first were a cause of the second; summed over the other variables, the smallest total marks the most exogenous variable, the source. `order=4` uses the fourth-order discriminator, which needs excess kurtosis in the noise, and `order=3` the third-order one, which needs skew. What follows each source is what `method` sets:
+
+| `method` | After each source | Passes over the data |
+|---|---|---|
+| `"deflation"` (default) | Removes it from the cumulants with the OLS coefficients `cov[j, s] / var[s]`, and looks for the next source among the rest | 1 |
+| `"exact"` | Removes it from the data, `x_j -= beta_j * x_s`, and computes the cumulants again | `p - 1` |
+| `"ratio"` | Removes it from the cumulants with cumulant-ratio coefficients, as FedISHC does | 1 |
+| `"sort"` | Nothing: the order is a single sort by the tau row sums | 1 |
+
+Two published methods are settings of this one. HC-LiNGAM (Chen et al., 2025) is `RCD(method="sort")` and HC, from the same paper, `RCD(method="exact")`; both give the orders and coefficients of the original implementation, which `tests/lingam/test_reference_implementation.py` checks. Deflating the cumulants is exact in the population limit. On a sample, each step works on statistics that earlier steps already deflated, so an error made early carries into every later step; `"exact"` avoids that drift at the price of a pass over the data per variable, which matters most with few variables or noise close to Gaussian, where the tau signal is weak to begin with.
+
+Once the order is fixed, each variable is regressed on the ones before it, from the covariance alone. `pruning="adaptive_lasso"` (Zou, 2006) sets the coefficients of absent edges to zero, with the penalty chosen by BIC over a grid of 20 (`lambda_selection="bic"`) or fixed at 0.01 times the mean variance of the predecessors (`"fixed"`); `pruning=None` is ordinary least squares, which keeps every predecessor as a parent, so `dag_` is then complete. The fitted model has `causal_order_`, `coef_` (with `coef_[child, parent]` the coefficient of `parent` in `child`'s equation), `dag_` and `adjacency_`.
+
+The functions behind the estimator work on the statistics, so data that do not fit in memory can be read in chunks:
+
+```python
+from causalbase.lingam import cumulants_from_sums, moment_sums, rcd
+
+stats = cumulants_from_sums([moment_sums(chunk) for chunk in chunks])
+result = rcd(stats, method="deflation")
+result.causal_order, result.coef, result.to_dag(threshold=0.1)
+```
+
+The moment sums of each chunk are taken about the chunk's own mean and moved exactly to the pooled mean when they are merged, so they keep their precision wherever the data are located and the result is the same as for the whole table. `rcd_exact(x)` runs the exact method on a table, and `exact_order(first, deflate)` runs its search with the deflation left to the caller, which is how `fedcausal` runs FedRCD over sites that keep their data.

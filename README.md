@@ -7,7 +7,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24594415.svg)](https://doi.org/10.5281/zenodo.24594415)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ptorrijos99/causalbase/blob/main/LICENSE)
 
-causalbase learns the structure of Bayesian networks from data. GES and XGES return the Markov equivalence class of the network; the searches over variable orders and over DAGs, and the exact search, return a single DAG. Scores and graph routines are compiled with Numba, so GES learns a network of a thousand variables in seconds.
+causalbase learns the structure of Bayesian networks from data. GES and XGES return the Markov equivalence class of the network; the searches over variable orders and over DAGs, and the exact search, return a single DAG; RCD returns the causal order and coefficients of a linear model with non-Gaussian noise, found from the higher-order cumulants of continuous data. Scores and graph routines are compiled with Numba, so GES learns a network of a thousand variables in seconds.
 
 | Estimator | Data | Search |
 |---|---|---|
@@ -17,6 +17,7 @@ causalbase learns the structure of Bayesian networks from data. GES and XGES ret
 | `FLOP` | Discrete (BDeu) | FLOP's search over orders (Wienöbst, Henckel and Weichwald, 2026) |
 | `HillClimbing` | Discrete (BDeu) | Hill climbing or tabu search over DAGs, with restarts |
 | `ExactSearch` | Discrete (BDeu) | The network of highest score, by dynamic programming, or the best one under a parent limit, by integer programming |
+| `RCD` | Continuous, linear with non-Gaussian noise | The causal order from higher-order cumulants, then the coefficients by adaptive lasso; HC-LiNGAM and HC (Chen et al., 2025) are among its settings |
 
 Every estimator follows scikit-learn's conventions (hyperparameters in the constructor, `fit` to learn, results ending in an underscore) without depending on it, so `clone`, `GridSearchCV` and pipelines work, and `score(X)` is the log likelihood of held-out rows. BDeu comes with two structure priors, a Bernoulli prior on each possible parent and Tetrad 7.6.5's, whose scores it reproduces.
 
@@ -115,6 +116,7 @@ The DOI always resolves to the latest version; every release also has its own DO
 
 ## References
 
+- Zou, H. (2006). The adaptive lasso and its oracle properties. *Journal of the American Statistical Association*, 101(476), 1418-1429.
 - Chickering, D. M. (1995). A transformational characterization of equivalent Bayesian network structures. *UAI '95*, 87-98.
 - Chickering, D. M. (2002). Optimal structure identification with greedy search. *Journal of Machine Learning Research*, 3, 507-554.
 - Silander, T., & Myllymäki, P. (2006). A simple approach for finding the globally optimal Bayesian network structure. *UAI '06*.
@@ -122,6 +124,8 @@ The DOI always resolves to the latest version; every release also has its own DO
 - Bartlett, M., & Cussens, J. (2017). Integer linear programming for the Bayesian network structure learning problem. *Artificial Intelligence*, 244, 258-271.
 - Ramsey, J., Glymour, M., Sanchez-Romero, R., & Glymour, C. (2017). A million variables and more: the Fast Greedy Equivalence Search algorithm for learning high-dimensional graphical causal models. *International Journal of Data Science and Analytics*, 3(2), 121-129.
 - Nazaret, A., & Blei, D. (2024). Extremely greedy equivalence search. *UAI 2024*, PMLR 244, 2716-2745.
+- Chen, W., et al. (2025). Higher order cumulants-based method for direct and efficient causal discovery. *IEEE Transactions on Neural Networks and Learning Systems*.
+- Torrijos, P., Stella, F., Gámez, J. A., & Puerta, J. M. (2026). Federated causal discovery via regression-directed cumulants. *Probabilistic Graphical Models (PGM 2026)*.
 - Wienöbst, M., Henckel, L., & Weichwald, S. (2026). Embracing discrete search: A reasonable approach to causal structure learning. *ICLR 2026*.
 
 ## License

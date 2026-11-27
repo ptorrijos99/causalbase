@@ -1,6 +1,6 @@
 """Bayesian network structure learning and causal discovery.
 
-Six estimators cover the common cases:
+Seven estimators cover the common cases:
 
 * :class:`GES` learns a causal structure from discrete or continuous data, and
   :class:`XGES` does so with a search that removes edges as it goes.
@@ -9,8 +9,10 @@ Six estimators cover the common cases:
   :class:`FLOP` with FLOP's search over orders.
 * :class:`HillClimbing` climbs over DAGs, optionally as a tabu search with
   restarts, and :class:`ExactSearch` finds the network of highest score.
+* :class:`RCD` learns a linear non-Gaussian model from continuous data through
+  its higher-order cumulants, with HC-LiNGAM and HC among its settings.
 
-The last four score with the compiled engine of
+OrderSearch, FLOP, HillClimbing and ExactSearch score with the compiled engine of
 :class:`~causalbase.scores.BDeuScore`, with its default Bernoulli structure
 prior or Tetrad's (``prior="tetrad"``); the functions behind them are
 :func:`~causalbase.order.order_search`, :func:`~causalbase.order.flop`,
@@ -29,6 +31,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from causalbase.exact import ExactSearch
     from causalbase.graph import DAG, PDAG
+    from causalbase.lingam import RCD
     from causalbase.order import FLOP, OrderSearch
     from causalbase.search import GES, XGES, HillClimbing
 
@@ -39,6 +42,7 @@ __all__ = [
     "FLOP",
     "GES",
     "PDAG",
+    "RCD",
     "XGES",
     "ExactSearch",
     "HillClimbing",
@@ -57,6 +61,7 @@ _HOMES = {
     "OrderSearch": "causalbase.order",
     "FLOP": "causalbase.order",
     "ExactSearch": "causalbase.exact",
+    "RCD": "causalbase.lingam",
 }
 
 
