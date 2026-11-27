@@ -50,3 +50,6 @@ jobs:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # A version uploaded by hand (0.1.0 was) is left as it is.
+          skip-existing: true
