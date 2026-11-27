@@ -93,11 +93,11 @@ On linear Gaussian data from random graphs (the setting of Nazaret and Blei: Erd
 | 50 | 3 | 148 | 57.6 | 41.0 | 2.2 | 0.05 | 0.10 | 3.30 |
 | 50 | 4 | 205 | 80.2 | 39.8 | 13.6 | 0.06 | 0.12 | 5.06 |
 
-## Against earlier releases
+## Against earlier versions
 
-GES and its scores were part of fedcausal until they moved here. The same data and the same structure prior through fedcausal 0.1.0 and 0.2.0, on the same machine:
+GES and its scores were written inside fedcausal and went through three unreleased versions there before they moved here. The first was plain Python and the second compiled its counting, path checks and CPDAG completion. The same data and the same structure prior through both, on the same machine:
 
-| Network | Variables | 0.1.0 (s) | 0.2.0 (s) | Speedup |
+| Network | Variables | Python (s) | Compiled (s) | Speedup |
 |---|---:|---:|---:|---:|
 | alarm | 37 | 0.89 | 0.05 | 18x |
 | hailfinder | 56 | 2.26 | 0.10 | 23x |
@@ -106,11 +106,11 @@ GES and its scores were part of fedcausal until they moved here. The same data a
 | andes | 223 | 24.8 | 0.72 | 34x |
 | pigs | 441 | 113.5 | 2.71 | 42x |
 
-Both versions learn structures with the same number of edges and the same BDeu score on every network in the table. The prior was 0.1.0's default, one parent expected per `n_rows - 1` candidates, which 0.2.0 expresses as `expected_parents=(n_vars - 1) / (n_rows - 1)`.
+Both versions learn structures with the same number of edges and the same BDeu score on every network in the table. The prior was the first version's default, one parent expected per `n_rows - 1` candidates, which the second expresses as `expected_parents=(n_vars - 1) / (n_rows - 1)`.
 
-fedcausal 0.3.0, whose GES is the one in causalbase, counts families without sorting rows and completes the CPDAG over neighbour lists. With the same prior, measured back to back:
+The third version, whose GES is the one in causalbase, counts families without sorting rows and completes the CPDAG over neighbour lists. With the same prior, measured back to back against the second:
 
-| Network | Variables | 0.2.0 (s) | 0.3.0 (s) | Speedup |
+| Network | Variables | Second (s) | causalbase (s) | Speedup |
 |---|---:|---:|---:|---:|
 | pathfinder | 109 | 0.62 | 0.42 | 1.5x |
 | diabetes | 413 | 7.9 | 2.8 | 2.8x |

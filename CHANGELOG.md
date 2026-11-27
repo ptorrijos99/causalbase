@@ -12,7 +12,7 @@ All notable changes to causalbase are listed here. The project follows [semantic
 
 ## 0.1.0 (2026-11-27)
 
-First release. causalbase is the part of [fedcausal](https://github.com/ptorrijos99/fedcausal) that learns from data held in one place, made a package of its own; fedcausal 1.0.0 keeps the federated methods and depends on it. The history of the code up to the split is in fedcausal's changelog.
+First release. causalbase is the part of [fedcausal](https://github.com/ptorrijos99/fedcausal) that learns from data held in one place, made a package of its own; fedcausal 1.0.0 keeps the federated methods and depends on it.
 
 ### Estimators
 
