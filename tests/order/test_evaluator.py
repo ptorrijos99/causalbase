@@ -1,8 +1,11 @@
+import tracemalloc
+
 import numpy as np
 import pytest
 
 from _samples import load_cell
-from causalbase.order import OrderResult, OrderScorer
+from causalbase.order import OrderResult, OrderScorer, evaluator
+from causalbase.order.evaluator import _bits
 from causalbase.scores import BDeuScore
 from causalbase.scores._tetrad import TetradBDeuReference
 from causalbase.search import ges
@@ -321,3 +324,70 @@ def test_answers_do_not_depend_on_what_was_asked_before(alarm, restarts):
             assert np.array_equal(warm.breaks(node, preds), cold.breaks(node, preds))
         else:
             assert warm.path_moves(node, preds) == cold.path_moves(node, preds)
+
+
+def test_neighbour_vectors_keep_only_the_improving_candidates(alarm):
+    # A stored state keeps the toggles that improve on it, with their scores; every other
+    # known candidate is a toggle that does not, which no climb, replay or break can take.
+    ds = alarm[0]
+    scorer = OrderScorer(BDeuScore(ds, prior="tetrad"), n_restarts=2)
+    for order in _order_chain(ds.n_vars, 30, seed=4):
+        scorer.score(order)
+    engine = scorer._scoring
+    checked = 0
+    for node in range(ds.n_vars):
+        for state, (idx, val) in list(scorer._vec[node].items())[:20]:
+            cur = engine.local_score(node, frozenset(_bits(state)))
+            known = scorer._known[node][state]
+            toggled = {
+                c: engine.local_score(node, frozenset(_bits(state ^ (1 << c))))
+                for c in range(ds.n_vars)
+                if c != node and (known >> c) & 1
+            }
+            assert sorted(idx.tolist()) == sorted(c for c, s in toggled.items() if s > cur)
+            assert all(val[k] == toggled[c] for k, c in enumerate(idx.tolist()))
+            checked += 1
+    assert checked > 0
+
+
+@pytest.mark.parametrize("restarts", [0, 2])
+def test_a_tight_cache_budget_changes_no_answer(alarm, restarts):
+    ds = alarm[0]
+    fast = BDeuScore(ds, prior="tetrad")
+    budget = 0.05  # MiB, far below what the caches reach on this chain
+    tight = OrderScorer(fast, n_restarts=restarts, cache_mb=budget)
+    free = OrderScorer(fast, n_restarts=restarts)
+    rng = np.random.default_rng(12)
+    for order in _order_chain(ds.n_vars, 150, seed=6):
+        assert tight.score(order) == free.score(order)
+        assert tight.cache_nbytes <= budget * 2**20
+        node = int(rng.integers(ds.n_vars))
+        preds = sum(1 << int(u) for u in order[: order.index(node)])
+        assert np.array_equal(tight.breaks(node, preds), free.breaks(node, preds))
+        assert tight.path_moves(node, preds) == free.path_moves(node, preds)
+    assert tight.n_evicted > 0
+    assert free.n_evicted == 0
+    assert free.cache_nbytes > 4 * budget * 2**20
+
+
+def test_cache_nbytes_follows_the_memory_the_caches_hold(alarm):
+    # Only what the scorer allocates: the compiled engine keeps its own, bounded, cache.
+    ds = alarm[0]
+    scorer = OrderScorer(BDeuScore(ds, prior="tetrad"), n_restarts=2)
+    scorer.score(_random_order(ds.n_vars, 0))  # compile and warm up outside the trace
+    mine = [tracemalloc.Filter(True, evaluator.__file__)]
+    tracemalloc.start()
+    before = tracemalloc.take_snapshot().filter_traces(mine)
+    held = scorer.cache_nbytes
+    for order in _order_chain(ds.n_vars, 100, seed=2):
+        scorer.score(order)
+    after = tracemalloc.take_snapshot().filter_traces(mine)
+    tracemalloc.stop()
+    grown = sum(d.size_diff for d in after.compare_to(before, "filename"))
+    assert 0.5 * grown <= scorer.cache_nbytes - held <= 1.5 * grown
+
+
+@pytest.mark.parametrize("cache_mb", [0, -1.0, float("nan")])
+def test_cache_budget_must_be_positive(alarm, cache_mb):
+    with pytest.raises(ValueError, match="cache_mb"):
+        OrderScorer(alarm[2], cache_mb=cache_mb)

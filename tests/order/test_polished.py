@@ -172,3 +172,11 @@ def test_order_search_does_not_depend_on_the_kernel_or_on_the_caches(alarm_small
     score = BDeuScore(alarm_small, prior="tetrad")
     res = order_search(score, list(range(alarm_small.n_vars)), max_iter=4, random_state=9)
     assert (res.score, sorted(res.dag.edges()), [(i, s) for _, i, s in res.trace]) == expected
+
+
+def test_order_search_under_a_tight_cache_budget_finds_the_same_network(alarm_small):
+    score = BDeuScore(alarm_small, prior="tetrad")
+    free = order_search(score, max_iter=3, random_state=4)
+    tight = order_search(score, max_iter=3, random_state=4, cache_mb=0.05)
+    assert tight.score == free.score
+    assert sorted(tight.dag.edges()) == sorted(free.dag.edges())

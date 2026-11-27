@@ -204,6 +204,7 @@ def order_search(
     max_iter: int | None = None,
     time_limit: float | None = None,
     random_state: int | None = None,
+    cache_mb: float | None = 2048,
 ) -> SearchResult:
     """Learn a network by iterated local search over orders, each local search polished by GES.
 
@@ -244,6 +245,10 @@ def order_search(
     random_state : int or None, default=None
         Seeds every random choice; None draws a fresh seed. With an integer and
         `max_iter` (and no time limit) the result is reproducible.
+    cache_mb : float or None, default=2048
+        Memory budget of the order evaluator's caches, in MiB (see
+        :class:`OrderScorer`); None leaves them unbounded. The search does not
+        change, a tight budget only slows it down.
 
     Returns
     -------
@@ -277,7 +282,7 @@ def order_search(
     seed = resolve_seed(random_state)
     start = start_order(score, initial_order)
     search = PolishedILS(
-        OrderScorer(score, n_restarts=n_restarts),
+        OrderScorer(score, n_restarts=n_restarts, cache_mb=cache_mb),
         random_state=seed,
         n_swaps=n_swaps,
         n_pair_candidates=n_pair_candidates,

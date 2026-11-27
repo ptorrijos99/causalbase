@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from causalbase._bdeu_estimator import BDeuEstimator, Init, initial_order
-from causalbase._validation import check_count, check_time_limit
+from causalbase._validation import check_count, check_positive, check_time_limit
 from causalbase.order.flop import flop
 from causalbase.order.polished import Polish, order_search
 
@@ -66,6 +66,10 @@ class OrderSearch(BDeuEstimator):
     random_state : int or None, default=None
         Seeds every random choice; None draws a fresh seed. With an integer the
         result is reproducible for a fixed `max_iter` and no time limit.
+    cache_mb : float or None, default=2048
+        Memory budget of the search's caches, in MiB; None leaves them
+        unbounded. The result does not depend on it, a tight budget only
+        slows the search down.
     n_jobs : int, default=1
         Threads that score large batches of candidate parents; the result does
         not depend on it.
@@ -112,6 +116,7 @@ class OrderSearch(BDeuEstimator):
         time_limit: float | None = 60.0,
         max_iter: int | None = None,
         random_state: int | None = None,
+        cache_mb: float | None = 2048,
         n_jobs: int = 1,
     ) -> None:
         self.ess = ess
@@ -124,6 +129,7 @@ class OrderSearch(BDeuEstimator):
         self.time_limit = time_limit
         self.max_iter = max_iter
         self.random_state = random_state
+        self.cache_mb = cache_mb
         self.n_jobs = n_jobs
 
     def _check(self) -> None:
@@ -133,6 +139,8 @@ class OrderSearch(BDeuEstimator):
         check_count("n_restarts", self.n_restarts)
         check_count("n_pair_candidates", self.n_pair_candidates)
         _check_order_search(self.init, self.max_iter, self.time_limit)
+        if self.cache_mb is not None:
+            check_positive("cache_mb", self.cache_mb)
 
     def _search(self, score: BDeuScore) -> SearchResult:
         return order_search(
@@ -144,6 +152,7 @@ class OrderSearch(BDeuEstimator):
             max_iter=self.max_iter,
             time_limit=self.time_limit,
             random_state=self.random_state,
+            cache_mb=self.cache_mb,
         )
 
 
@@ -175,6 +184,10 @@ class FLOP(BDeuEstimator):
         of the two limits must be set.
     random_state : int or None, default=None
         Seeds every random choice; None draws a fresh seed.
+    cache_mb : float or None, default=2048
+        Memory budget of the search's caches, in MiB; None leaves them
+        unbounded. The result does not depend on it, a tight budget only
+        slows the search down.
     n_jobs : int, default=1
         Threads that score large batches of candidate parents; the result does
         not depend on it.
@@ -207,6 +220,7 @@ class FLOP(BDeuEstimator):
         max_iter: int | None = None,
         time_limit: float | None = 60.0,
         random_state: int | None = None,
+        cache_mb: float | None = 2048,
         n_jobs: int = 1,
     ) -> None:
         self.ess = ess
@@ -216,11 +230,14 @@ class FLOP(BDeuEstimator):
         self.max_iter = max_iter
         self.time_limit = time_limit
         self.random_state = random_state
+        self.cache_mb = cache_mb
         self.n_jobs = n_jobs
 
     def _check(self) -> None:
         super()._check()
         _check_order_search(self.init, self.max_iter, self.time_limit)
+        if self.cache_mb is not None:
+            check_positive("cache_mb", self.cache_mb)
 
     def _search(self, score: BDeuScore) -> SearchResult:
         return flop(
@@ -229,4 +246,5 @@ class FLOP(BDeuEstimator):
             max_iter=self.max_iter,
             time_limit=self.time_limit,
             random_state=self.random_state,
+            cache_mb=self.cache_mb,
         )

@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from _samples import load_cell
-from causalbase import OrderSearch
+from causalbase import FLOP, OrderSearch
 from causalbase.exceptions import NotFittedError
 from causalbase.graph import dag_to_cpdag
 from causalbase.order import order_search
@@ -112,3 +112,14 @@ def test_the_scores_share_one_interface(alarm_small):
     assert fast.score_dag(dag) == pytest.approx(
         sum(fast.local_score(v, dag.parents(v)) for v in range(dag.num_nodes)), rel=1e-15
     )
+
+
+@pytest.mark.parametrize("estimator", [OrderSearch, FLOP])
+def test_a_cache_budget_leaves_the_learned_network_as_it_is(alarm_small, estimator):
+    kwargs = {"prior": "tetrad", "max_iter": 2, "time_limit": None, "random_state": 5}
+    free = estimator(**kwargs).fit(alarm_small)
+    tight = estimator(**kwargs, cache_mb=0.05).fit(alarm_small)
+    assert sorted(tight.dag_.edges()) == sorted(free.dag_.edges())
+    assert tight.score_ == free.score_
+    with pytest.raises(ValueError, match="cache_mb"):
+        estimator(**kwargs, cache_mb=-1).fit(alarm_small)

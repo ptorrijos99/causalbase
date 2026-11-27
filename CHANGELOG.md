@@ -2,6 +2,13 @@
 
 All notable changes to causalbase are listed here. The project follows [semantic versioning](https://semver.org/); before 1.0.0, a minor release may change the API, and the changelog says how.
 
+## Unreleased
+
+### Memory
+
+- `OrderScorer` used to keep a score for every variable of every parent set it visited, so its memory grew with the length of the search (about 12 GB on munin, with 1041 variables, after 30 minutes). It now keeps, for each parent set, only the toggles that improve on it, which are the only ones a climb, a replay or `breaks` can take, and one answer object per result shared by every predecessor set that reaches it. Searches and their results are unchanged.
+- `cache_mb`, in `OrderScorer`, `order_search`, `flop`, `OrderSearch` and `FLOP`: a memory budget for the caches of local scores and visited parent sets, 2048 MiB by default except in `OrderScorer` (unbounded). When a query leaves them above it, every cache drops its oldest quarter. Results do not change, since a dropped entry is computed again when needed; a tight budget only costs time. `OrderScorer.cache_nbytes` is the estimate the budget is checked against, and `flop` reports the scores it dropped in `info["cache_evicted"]`.
+
 ## 0.1.0 (2026-11-27)
 
 First release. causalbase is the part of [fedcausal](https://github.com/ptorrijos99/fedcausal) that learns from data held in one place, made a package of its own; fedcausal 1.0.0 keeps the federated methods and depends on it. The history of the code up to the split is in fedcausal's changelog.

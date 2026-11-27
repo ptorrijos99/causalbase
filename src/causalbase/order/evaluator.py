@@ -13,20 +13,40 @@ climbing again: removing a candidate that was never chosen changes no argmax,
 and a new candidate changes the path only if it beats the move that was taken
 at some step, or improves on the final state. The result is identical to a
 climb from scratch; ``incremental=False`` gives that climb, for testing.
+
+Everything the scorer caches is a fact about the score (a family's score, the
+improving toggles of a parent set, a node's answer for a predecessor set), so
+dropping an entry only costs recomputing it. ``cache_mb`` uses that to keep
+the caches within a memory budget.
 """
 
 from __future__ import annotations
 
 import math
+import sys
 from collections.abc import Sequence
+from itertools import islice
 from typing import TYPE_CHECKING, Any, NamedTuple, Protocol
 
 import numpy as np
+
+from causalbase._validation import check_positive
 
 if TYPE_CHECKING:
     from causalbase.scores import BDeuScore
 
 __all__ = ["OrderResult", "OrderScorer"]
+
+# Rough sizes in bytes on 64-bit CPython, for the memory budget: a dict entry with its
+# share of the table, the header of a small numpy array, a pair, a float, and an answer
+# (a pair holding a float and a small frozenset).
+_SLOT = 100
+_ARRAY = 112
+_PAIR = 56
+_FLOAT = 24
+_ANSWER = 300
+# Improving-toggle lists kept per node as Python lists, besides the arrays.
+_RECENT = 16
 
 
 class OrderResult(NamedTuple):
@@ -57,7 +77,7 @@ def _bits(mask: int) -> list[int]:
 
 
 class _NodeMemo:
-    __slots__ = ("final_parents", "final_score", "final_state", "path", "preds")
+    __slots__ = ("answer", "final_parents", "final_score", "final_state", "path", "preds")
 
     def __init__(
         self, preds: int, path: list[list[Any]], final_state: int, final_score: float
@@ -71,6 +91,7 @@ class _NodeMemo:
         self.final_state = final_state
         self.final_score = final_score
         self.final_parents = frozenset(_bits(final_state))
+        self.answer: tuple[float, frozenset[int]] | None = None  # shared, see _answer
 
 
 class OrderScorer:
@@ -110,6 +131,21 @@ class OrderScorer:
         parents. Each climb is an ordinary greedy climb on a smaller predecessor
         set, so it reuses the memos and replays, and :meth:`breaks` and
         :meth:`path_moves` stay exact.
+    cache_mb : float or None, default=None
+        Memory budget of the caches, in MiB; None leaves them unbounded. When a
+        query leaves them above it, every cache drops its oldest quarter (least
+        recently used, for the neighbour vectors) until they fit. Answers do
+        not change, since dropped entries are recomputed when needed; a budget
+        far below what a search visits only costs time.
+
+    Attributes
+    ----------
+    cache_nbytes : int
+        Estimated bytes held by the caches the budget covers: family scores,
+        neighbour vectors, final-state verdicts and stored answers. The greedy
+        paths in the slots (``memo_slots`` per node) are not counted.
+    n_evicted : int
+        Cache entries dropped to keep within `cache_mb`.
     """
 
     def __init__(
@@ -120,7 +156,10 @@ class OrderScorer:
         memo_slots: int = 8,
         exact_cap: int = 1024,
         n_restarts: int = 0,
+        cache_mb: float | None = None,
     ) -> None:
+        if cache_mb is not None:
+            check_positive("cache_mb", cache_mb)
         self.family_score = score
         n_vars = self.n_vars = score.n_vars
         self.max_steps = max_steps
@@ -128,9 +167,16 @@ class OrderScorer:
         self.memo_slots = max(1, memo_slots)
         self.exact_cap = max(0, exact_cap)
         self.n_restarts = max(0, n_restarts)
+        self.cache_mb = cache_mb
+        self._budget = math.inf if cache_mb is None else float(cache_mb) * 2**20
+        self.cache_nbytes = 0
+        self.n_evicted = 0
         # Per node: predecessor mask -> best answer over the restart chain.
         self._best: list[dict[int, tuple[float, frozenset[int]]]] = [{} for _ in range(n_vars)]
         self._exact: list[dict[int, tuple[float, frozenset[int]]]] = [{} for _ in range(n_vars)]
+        # Per node: final parent mask -> its (score, parents) answer, so that every stored
+        # answer with the same result is one object.
+        self._answers: list[dict[int, tuple[float, frozenset[int]]]] = [{} for _ in range(n_vars)]
         self._memo: list[list[_NodeMemo]] = [[] for _ in range(n_vars)]
         # Per node: predecessor mask -> its memo, for the memos in the slots.
         self._slot: list[dict[int, _NodeMemo]] = [{} for _ in range(n_vars)]
@@ -139,20 +185,30 @@ class OrderScorer:
         # and those known to improve on it.
         self._final_ok: list[dict[int, int]] = [{} for _ in range(n_vars)]
         self._final_bad: list[dict[int, int]] = [{} for _ in range(n_vars)]
-        # Per node: parent masks whose neighbour vector has every entry filled in.
+        # Per node: parent masks whose every toggle has been scored.
         self._full: list[set[int]] = [set() for _ in range(n_vars)]
-        # Per node: parent mask -> bitmask of the filled entries of its neighbour vector, and the
-        # improving candidates among them with the bitmask they were listed for (see _positive).
+        # Per node: parent mask -> bitmask of the toggles scored against it.
         self._known: list[dict[int, int]] = [{} for _ in range(n_vars)]
-        self._pos: list[dict[int, tuple[int, list[tuple[int, float]]]]] = [
+        self._all = (1 << n_vars) - 1
+        # Per node: parent mask -> the toggles that improve on it, best first (smallest
+        # index on ties), and their scores. The other scored toggles are not kept: every
+        # reader compares a gain with a positive threshold (the gain of a move, or zero),
+        # which they never pass, so a vector of the improving entries and -inf elsewhere
+        # answers as the full one. Most toggles improve on nothing, so this holds a
+        # small fraction of the scores.
+        self._vec: list[dict[int, tuple[np.ndarray, np.ndarray]]] = [{} for _ in range(n_vars)]
+        # Per node: the last few of those, as the Python lists the climbs iterate over (a
+        # climb or replay reads the same states again and again).
+        self._recent: list[dict[int, tuple[Any, list[tuple[int, float, float]]]]] = [
             {} for _ in range(n_vars)
         ]
-        self._all = (1 << n_vars) - 1
-        # Per node: parent mask -> vector whose entry c is the score of the mask with c
-        # toggled (NaN while unknown, -inf for a non-finite score). A climb step reads
-        # all its candidates from one vector instead of one dictionary lookup each.
-        self._vec: list[dict[int, np.ndarray]] = [{} for _ in range(n_vars)]
         self._nbytes = (n_vars + 7) // 8
+        key = sys.getsizeof(self._all)  # an int as wide as a parent mask
+        self._cost_vec = 2 * _SLOT + 2 * key + _PAIR + 2 * _ARRAY  # with its known mask
+        self._cost_score = _SLOT + key + _FLOAT
+        self._cost_mask = _SLOT + 2 * key
+        self._cost_answer = _SLOT + key + _ANSWER
+        self._cost_ref = _SLOT + key  # a key and a reference to a shared answer
         engine = getattr(score, "_engine", None)
         self._scoring = engine() if engine is not None else score
         self._batch = getattr(self._scoring, "local_scores_add", None)
@@ -166,6 +222,7 @@ class OrderScorer:
         if value is None:
             value = self._scoring.local_score(node, frozenset(_bits(mask)))
             cache[mask] = value
+            self.cache_nbytes += self._cost_score
         return value
 
     def _idx(self, mask: int) -> np.ndarray:
@@ -173,68 +230,117 @@ class OrderScorer:
         raw = np.frombuffer(mask.to_bytes(self._nbytes, "little"), dtype=np.uint8)
         return np.flatnonzero(np.unpackbits(raw, bitorder="little"))
 
-    def _lookup(self, node: int, state: int, cands: Sequence[int] | np.ndarray) -> np.ndarray:
-        """Neighbour vector of ``state`` with the entries of ``cands`` filled in."""
-        self.n_local_calls += len(cands)
+    def _flags(self, mask: int) -> np.ndarray:
+        """Return ``mask`` as a boolean array of length ``n_vars``."""
+        raw = np.frombuffer(mask.to_bytes(self._nbytes, "little"), dtype=np.uint8)
+        return np.unpackbits(raw, count=self.n_vars, bitorder="little").view(bool)
+
+    def _entry(self, node: int, state: int) -> tuple[np.ndarray, np.ndarray] | None:
+        """Return the stored improving toggles of ``state``, marking them as just used."""
         vecs = self._vec[node]
-        vec = vecs.get(state)
-        if vec is None:
-            vec = np.full(self.n_vars, np.nan)
-            vec[node] = -math.inf  # never asked for; without it no vector would ever be complete
-            vecs[state] = vec
-        elif state in self._full[node]:
-            return vec
-        if isinstance(cands, np.ndarray):
-            missing = cands[np.isnan(vec[cands])]
+        if self._budget == math.inf:
+            return vecs.get(state)
+        ent = vecs.pop(state, None)
+        if ent is not None:
+            vecs[state] = ent  # the newest entries are dropped last
+        return ent
+
+    def _lookup(self, node: int, state: int, cands: Sequence[int] | np.ndarray) -> np.ndarray:
+        """Neighbour vector of ``state`` with the toggles of ``cands`` scored.
+
+        Entry ``c`` is the score of ``state`` with ``c`` toggled if that
+        improves on ``state``, and -inf otherwise (or not yet scored).
+        """
+        self.n_local_calls += len(cands)
+        vec = np.full(self.n_vars, -math.inf)
+        ent = self._vec[node].get(state) if self._budget == math.inf else self._entry(node, state)
+        if ent is None:
+            known = 1 << node  # never asked for; without it no state would ever be full
         else:
-            missing = np.array([c for c in cands if vec.item(c) != vec.item(c)], dtype=np.int64)
-        if missing.size:
-            if self._batch is not None:
-                # Additions go straight to the batch kernel: going through the
-                # family cache costs a dictionary probe and insert per candidate,
-                # more than the few families reachable from two states save.
-                inside = np.zeros(self.n_vars, dtype=bool)
-                inside[self._idx(state)] = True
-                add = missing[~inside[missing]]
-                missing = missing[inside[missing]]
-                if add.size:
-                    vals = np.asarray(self._batch(node, _bits(state), add), dtype=float)
-                    vec[add] = np.where(np.isnan(vals), -math.inf, vals)
-            cache = self._cache[node]
-            for c in missing.tolist():
-                m = state ^ (1 << c)
-                v = cache.get(m)
-                if v is None:
-                    v = self._scoring.local_score(node, frozenset(_bits(m)))
-                    cache[m] = v
-                vec[c] = v if v == v else -math.inf
-            known = int.from_bytes(np.packbits(vec == vec, bitorder="little").tobytes(), "little")
-            self._known[node][state] = known
-            if known == self._all:
-                self._full[node].add(state)
+            vec[ent[0]] = ent[1]
+            if state in self._full[node]:
+                return vec
+            known = self._known[node][state]
+        if isinstance(cands, np.ndarray):
+            missing = cands if ent is None else cands[~self._flags(known)[cands]]
+        else:
+            missing = np.array([c for c in cands if not (known >> c) & 1], dtype=np.int64)
+        if not missing.size:
+            return vec
+        rest = missing
+        if self._batch is not None:
+            # Additions go straight to the batch kernel: going through the family
+            # cache costs a dictionary probe and insert per candidate, more than
+            # the few families reachable from two states save.
+            inside = np.zeros(self.n_vars, dtype=bool)
+            inside[self._idx(state)] = True
+            add = missing[~inside[missing]]
+            rest = missing[inside[missing]]
+            if add.size:
+                vals = np.asarray(self._batch(node, _bits(state), add), dtype=float)
+                vec[add] = np.where(np.isnan(vals), -math.inf, vals)
+        cache = self._cache[node]
+        for c in rest.tolist():
+            m = state ^ (1 << c)
+            v = cache.get(m)
+            if v is None:
+                v = self._scoring.local_score(node, frozenset(_bits(m)))
+                cache[m] = v
+                self.cache_nbytes += self._cost_score
+            vec[c] = v if v == v else -math.inf
+        flags = self._flags(known).copy()
+        flags[missing] = True
+        known = int.from_bytes(np.packbits(flags, bitorder="little").tobytes(), "little")
+        cur = cache.get(state)
+        if cur is None:
+            cur = self._ls(node, state)
+        gains = vec - cur
+        idx = np.flatnonzero(gains > 0)
+        if idx.size > 1:
+            idx = idx[np.lexsort((idx, -gains[idx]))]
+        if ent is None:
+            self.cache_nbytes += self._cost_vec + 16 * idx.size
+        else:
+            self.cache_nbytes += 16 * (idx.size - ent[0].size)
+        self._vec[node][state] = (idx, vec[idx])
+        self._known[node][state] = known
+        if known == self._all:
+            self._full[node].add(state)
         return vec
 
-    def _positive(self, node: int, state: int, need: int) -> list[tuple[int, float]] | None:
-        """List the scored candidates whose toggle improves ``state``, with their gains.
+    def _positive(self, node: int, state: int, need: int) -> list[tuple[int, float, float]] | None:
+        """List the toggles that improve ``state``: candidate, gain and score.
 
-        The list is best first (smallest index on ties). None unless every
-        candidate of ``need`` has been scored against ``state``.
-        Otherwise the best move among ``need`` is the first of the list that belongs
-        to it, and only candidates of the list can beat a move, so a climb or a
-        replay needs no pass over the predecessors.
+        Best first (smallest index on ties). None unless every candidate of
+        ``need`` has been scored against ``state``. Otherwise the best move
+        among ``need`` is the first one that belongs to it, and only these
+        toggles can beat a move, so a climb or a replay needs no pass over the
+        predecessors.
         """
         known = self._known[node].get(state, 0)
         if need & ~known or not known:
             return None
-        hit = self._pos[node].get(state)
-        if hit is None or hit[0] != known:
-            gains = self._vec[node][state] - self._ls(node, state)
-            idx = np.flatnonzero(gains > 0)
-            if idx.size > 1:
-                idx = idx[np.lexsort((idx, -gains[idx]))]
-            hit = (known, list(zip(idx.tolist(), gains[idx].tolist(), strict=True)))
-            self._pos[node][state] = hit
-        return hit[1]
+        ent = self._vec[node][state] if self._budget == math.inf else self._entry(node, state)
+        recent = self._recent[node]
+        hit = recent.get(state)
+        if hit is not None and hit[0] is ent:
+            return hit[1]
+        idx, val = ent  # type: ignore[misc]  # known implies stored
+        gains = val - self._ls(node, state)
+        out = list(zip(idx.tolist(), gains.tolist(), val.tolist(), strict=True))
+        recent[state] = (ent, out)
+        if len(recent) > _RECENT:
+            del recent[next(iter(recent))]
+        return out
+
+    def _note(self, pool: dict[int, int], state: int, bits: int) -> None:
+        """Add ``bits`` to the candidate mask kept for ``state`` in ``pool``."""
+        old = pool.get(state)
+        if old is None:
+            pool[state] = bits
+            self.cache_nbytes += self._cost_mask
+        else:
+            pool[state] = old | bits
 
     def _climb(
         self, node: int, preds: int, state: int, budget: int
@@ -246,12 +352,11 @@ class OrderScorer:
             pos = self._positive(node, state, preds)
             if pos is not None:
                 self.n_local_calls += preds.bit_count()  # the lookups this step stands for
-                for best_c, best_gain in pos:  # noqa: B007 - best_gain is read after the loop
+                for best_c, best_gain, best_score in pos:  # noqa: B007 - read after the loop
                     if (preds >> best_c) & 1:
                         break
                 else:
                     break
-                vec = self._vec[node][state]
             else:
                 if cands is None:
                     cands = self._idx(preds)
@@ -264,14 +369,17 @@ class OrderScorer:
                 if not best_gain > 0.0:
                     break
                 best_c = int(cands[j])
+                best_score = vec.item(best_c)
             path.append([state, best_gain, best_c, preds, 0])
             state ^= 1 << best_c
             # Finite, as its gain is positive; the same float _ls would give.
-            cur = vec.item(best_c)
-            self._cache[node][state] = cur
+            cur = best_score
+            cache = self._cache[node]
+            if state not in cache:
+                cache[state] = cur
+                self.cache_nbytes += self._cost_score
         if len(path) < budget:
-            fin = self._final_ok[node]
-            fin[state] = fin.get(state, 0) | preds
+            self._note(self._final_ok[node], state, preds)
         return path, state, cur
 
     def _chain(self, node: int, preds: int) -> list[int]:
@@ -289,6 +397,12 @@ class OrderScorer:
 
     def local(self, node: int, preds: int) -> tuple[float, frozenset[int]]:
         """Best local score of ``node`` and its parents, given a predecessor bitmask."""
+        out = self._local(node, preds)
+        if self.cache_nbytes > self._budget:
+            self._shrink()
+        return out
+
+    def _local(self, node: int, preds: int) -> tuple[float, frozenset[int]]:
         if not self.n_restarts:
             return self._local0(node, preds)
         cache = self._best[node] if self.incremental and self.exact_cap else None
@@ -305,8 +419,10 @@ class OrderScorer:
                 best = r
         if cache is not None:
             cache[preds] = best
+            self.cache_nbytes += self._cost_ref
             if len(cache) > self.exact_cap:
                 del cache[next(iter(cache))]
+                self.cache_nbytes -= self._cost_ref
         return best
 
     def _local0(self, node: int, preds: int) -> tuple[float, frozenset[int]]:
@@ -316,8 +432,54 @@ class OrderScorer:
             if hit is not None:
                 self.n_reused += 1
                 return hit
-        memo = self._memo_of(node, preds)
-        return memo.final_score, memo.final_parents
+        return self._answer(node, self._memo_of(node, preds))
+
+    def _answer(self, node: int, memo: _NodeMemo) -> tuple[float, frozenset[int]]:
+        """Return the ``(score, parents)`` answer of ``memo``, one object per final state."""
+        out = memo.answer
+        if out is None:
+            answers = self._answers[node]
+            out = answers.get(memo.final_state)
+            if out is None:
+                out = answers[memo.final_state] = (memo.final_score, memo.final_parents)
+                self.cache_nbytes += self._cost_answer
+            memo.answer = out
+        return out
+
+    def _shrink(self) -> None:
+        """Drop the oldest quarter of every cache until the caches fit the budget."""
+        while self.cache_nbytes > self._budget:
+            for node in range(self.n_vars):
+                self._recent[node].clear()
+                vecs, known, full = self._vec[node], self._known[node], self._full[node]
+                for state in list(islice(vecs, (len(vecs) + 3) // 4)):
+                    del vecs[state], known[state]
+                    full.discard(state)
+                    self.n_evicted += 1
+                for pool in (
+                    self._cache[node],
+                    self._final_ok[node],
+                    self._final_bad[node],
+                    self._answers[node],
+                    self._exact[node],
+                    self._best[node],
+                ):
+                    for key in list(islice(pool, (len(pool) + 3) // 4)):
+                        del pool[key]
+                        self.n_evicted += 1
+            self.cache_nbytes = self._held()
+
+    def _held(self) -> int:
+        """Estimate the bytes the caches hold, entry by entry."""
+        total = 0
+        for node in range(self.n_vars):
+            vecs = self._vec[node]
+            total += len(vecs) * self._cost_vec + 16 * sum(e[0].size for e in vecs.values())
+            total += len(self._cache[node]) * self._cost_score
+            total += (len(self._final_ok[node]) + len(self._final_bad[node])) * self._cost_mask
+            total += len(self._answers[node]) * self._cost_answer
+            total += (len(self._exact[node]) + len(self._best[node])) * self._cost_ref
+        return total
 
     def path_moves(self, node: int, preds: int) -> int:
         """Return the bitmask of the candidates toggled along the greedy path of ``node``.
@@ -331,6 +493,8 @@ class OrderScorer:
         for p in self._chain(node, preds) if self.n_restarts else [preds]:
             for entry in self._memo_of(node, p).path:
                 mask |= 1 << entry[2]
+        if self.cache_nbytes > self._budget:
+            self._shrink()
         return mask
 
     def breaks(self, node: int, preds: int) -> np.ndarray:
@@ -350,14 +514,16 @@ class OrderScorer:
         if not self.n_restarts:
             for t, hit in self._breaks0(node, preds):
                 brk[self._idx(hit)] = t
-            return brk
-        outside = self._all & ~preds & ~(1 << node)
-        for p in self._chain(node, preds):
-            for t, hit in self._breaks0(node, p):
-                hit &= outside
-                if hit:
-                    idx = self._idx(hit)
-                    brk[idx] = np.maximum(brk[idx], t)
+        else:
+            outside = self._all & ~preds & ~(1 << node)
+            for p in self._chain(node, preds):
+                for t, hit in self._breaks0(node, p):
+                    hit &= outside
+                    if hit:
+                        idx = self._idx(hit)
+                        brk[idx] = np.maximum(brk[idx], t)
+        if self.cache_nbytes > self._budget:
+            self._shrink()
         return brk
 
     def _mask(self, idx: np.ndarray) -> int:
@@ -409,9 +575,9 @@ class OrderScorer:
                 if hit.any():
                     new = self._mask(idx[hit])
                     beat |= new
-                    bad[state] = beat
+                    self._note(bad, state, new)
                     todo &= ~new
-                fin[state] = fin.get(state, 0) | todo
+                self._note(fin, state, todo)
             hit = alive & beat
             if hit:
                 out.append((len(memo.path), hit))
@@ -454,9 +620,12 @@ class OrderScorer:
         if not self.exact_cap:
             return
         exact = self._exact[node]
-        exact[preds] = (memo.final_score, memo.final_parents)
+        if preds not in exact:
+            self.cache_nbytes += self._cost_ref
+        exact[preds] = self._answer(node, memo)
         if len(exact) > self.exact_cap:
             del exact[next(iter(exact))]
+            self.cache_nbytes -= self._cost_ref
 
     def _replay(self, node: int, memo: _NodeMemo, preds: int) -> _NodeMemo:
         added = preds & ~memo.preds
@@ -473,7 +642,7 @@ class OrderScorer:
                 pos = self._positive(node, state, todo)
                 if pos is not None:
                     self.n_local_calls += todo.bit_count()
-                    for a, g in pos:
+                    for a, g, _ in pos:
                         if g < gain:
                             break
                         if (todo >> a) & 1 and (g > gain or a < cand):
@@ -501,7 +670,7 @@ class OrderScorer:
                     pos = self._positive(node, memo.final_state, todo)
                     if pos is not None:
                         self.n_local_calls += todo.bit_count()
-                        improves = any((todo >> a) & 1 for a, _ in pos)
+                        improves = any((todo >> a) & 1 for a, _, _ in pos)
                     else:
                         cur = memo.final_score
                         cands = _bits(todo)
@@ -510,13 +679,14 @@ class OrderScorer:
                     if improves:
                         diverge = len(memo.path)
                     else:
-                        fin[memo.final_state] = fin.get(memo.final_state, 0) | todo
+                        self._note(fin, memo.final_state, todo)
             if diverge is None:
                 self.n_reused += 1
                 out = _NodeMemo.__new__(_NodeMemo)
                 out.preds, out.path = preds, memo.path
                 out.final_state, out.final_score = memo.final_state, memo.final_score
                 out.final_parents = memo.final_parents
+                out.answer = memo.answer
                 return out
         start = memo.path[diverge][0] if diverge < len(memo.path) else memo.final_state
         tail, state, cur = self._climb(node, preds, start, self.max_steps - diverge)
