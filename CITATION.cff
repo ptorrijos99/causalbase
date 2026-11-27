@@ -18,6 +18,11 @@ authors:
     orcid: "https://orcid.org/0000-0002-9164-5191"
 version: "0.1.0"
 date-released: "2026-11-27"
+doi: "10.5281/zenodo.24594415"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.24594415"
+    description: "All versions (resolves to the latest)"
 repository-code: "https://github.com/ptorrijos99/causalbase"
 url: "https://ptorrijos99.github.io/causalbase/"
 license: MIT

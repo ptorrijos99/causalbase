@@ -4,6 +4,7 @@
 [![Docs](https://github.com/ptorrijos99/causalbase/actions/workflows/docs.yml/badge.svg)](https://ptorrijos99.github.io/causalbase/)
 [![PyPI](https://img.shields.io/pypi/v/causalbase.svg)](https://pypi.org/project/causalbase/)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24594415.svg)](https://doi.org/10.5281/zenodo.24594415)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ptorrijos99/causalbase/blob/main/LICENSE)
 
 Bayesian network structure learning and causal discovery in Python. causalbase learns, from a table of observations, the network of dependencies between its variables: the Markov equivalence class that greedy equivalence search returns, or a single DAG from a search over orders, over DAGs or an exact one. The scores and the graph routines run in compiled Numba code, so GES learns a network of a thousand variables in seconds.
@@ -105,11 +106,12 @@ If you use causalbase in a scientific publication, please cite:
   author = {Torrijos, Pablo and G{\'a}mez, Jos{\'e} A. and Puerta, Jos{\'e} M.},
   title = {causalbase: Bayesian network structure learning and causal discovery},
   year = {2026},
+  doi = {10.5281/zenodo.24594415},
   url = {https://github.com/ptorrijos99/causalbase}
 }
 ```
 
-The same information is in [`CITATION.cff`](https://github.com/ptorrijos99/causalbase/blob/main/CITATION.cff), which GitHub shows as "Cite this repository".
+The DOI always resolves to the latest version; every release also has its own DOI on [Zenodo](https://doi.org/10.5281/zenodo.24594415). The same information is in [`CITATION.cff`](https://github.com/ptorrijos99/causalbase/blob/main/CITATION.cff), which GitHub shows as "Cite this repository".
 
 ## References
 
