@@ -7,7 +7,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24594415.svg)](https://doi.org/10.5281/zenodo.24594415)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ptorrijos99/causalbase/blob/main/LICENSE)
 
-Bayesian network structure learning and causal discovery in Python. causalbase learns, from a table of observations, the network of dependencies between its variables: the Markov equivalence class that greedy equivalence search returns, or a single DAG from a search over orders, over DAGs or an exact one. The scores and the graph routines run in compiled Numba code, so GES learns a network of a thousand variables in seconds.
+causalbase learns the structure of Bayesian networks from data. GES and XGES return the Markov equivalence class of the network; the searches over variable orders and over DAGs, and the exact search, return a single DAG. Scores and graph routines are compiled with Numba, so GES learns a network of a thousand variables in seconds.
 
 | Estimator | Data | Search |
 |---|---|---|

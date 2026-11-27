@@ -2,7 +2,7 @@
 
 [Source](https://github.com/ptorrijos99/causalbase) | [Issues](https://github.com/ptorrijos99/causalbase/issues) | [Changelog](https://github.com/ptorrijos99/causalbase/blob/main/CHANGELOG.md) | [Citing](citing.md)
 
-causalbase learns the structure of Bayesian networks, and the causal structure behind them, from a table of observations. It has six estimators, all with scikit-learn's conventions and compiled scores:
+causalbase learns the structure of Bayesian networks from data. It has six estimators, all following scikit-learn's conventions:
 
 | Estimator | Data | Returns |
 |---|---|---|

@@ -27,14 +27,14 @@ repository-code: "https://github.com/ptorrijos99/causalbase"
 url: "https://ptorrijos99.github.io/causalbase/"
 license: MIT
 abstract: >-
-  A Python library for learning the structure of Bayesian networks, and the
-  causal structure behind them, from data held in one place: greedy
-  equivalence search (GES) and XGES over BDeu, BIC or Gaussian BIC, iterated
-  local search over variable orders, FLOP, hill climbing and tabu search over
-  DAGs, and exact search by dynamic programming or integer programming. The
-  scores and graph routines are compiled; structural metrics, XMLBIF input,
-  forward sampling and five benchmark networks are included. The federated
-  methods of fedcausal build on it.
+  causalbase learns the structure of Bayesian networks from data. It
+  implements greedy equivalence search (GES) and XGES with BDeu, BIC or
+  Gaussian BIC, iterated local search over variable orders, FLOP, hill
+  climbing and tabu search over DAGs, and exact search by dynamic programming
+  or integer programming. Scores and graph routines are compiled with Numba.
+  Structural metrics, XMLBIF input, forward sampling and five benchmark
+  networks are included. fedcausal, which learns from data split across sites,
+  is built on it.
 keywords:
   - causal discovery
   - structure learning
