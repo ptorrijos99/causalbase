@@ -6,7 +6,7 @@ All notable changes to causalbase are listed here. The project follows [semantic
 
 ### Added
 
-- `causalbase.lingam`, the cumulant methods for linear non-Gaussian models, moved from fedcausal so that the centralised ones live with the other methods that learn from one table. fedcausal 1.1 imports them from here and keeps its federated names.
+- `causalbase.lingam`, the cumulant methods for linear non-Gaussian models, moved from fedcausal so that the centralised ones live with the other methods that learn from one table. fedcausal 1.0.0 imports them from here and keeps its federated names.
 - `RCD`, also importable from `causalbase`: the causal order from the third- or fourth-order cumulants of the data, then the coefficients by adaptive lasso or OLS, with fitted `causal_order_`, `coef_`, `dag_` and `adjacency_`. Its options are those of fedcausal's `FedRCD`; HC-LiNGAM is `RCD(method="sort")` and HC `RCD(method="exact")`, and both reproduce the orders and coefficients of the original implementation.
 - The functions behind it, on the statistics rather than the data: `moment_sums` and `cumulants_from_sums`, which merge the sums of any number of blocks of rows exactly; `rcd` on the cumulants, `rcd_exact` on a table and `exact_order` with the deflation left to the caller; the tau discriminators `tau_matrix_3rd` and `tau_matrix_4th`; and `estimate_b_from_cov` and `estimate_b_lasso_from_cov` for the coefficients on a known order.
 
