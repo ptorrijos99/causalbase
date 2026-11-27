@@ -40,6 +40,7 @@ from typing import Any
 
 import numpy as np
 
+from causalbase._parallel import n_threads, numba_threads
 from causalbase.data import DiscreteDataset
 from causalbase.graph import DAG
 from causalbase.scores._tetrad import TetradBDeuReference
@@ -49,7 +50,7 @@ __all__ = ["HAVE_NUMBA", "CompiledBDeu", "engine_of"]
 
 try:
     from llvmlite import ir
-    from numba import config, njit, prange, set_num_threads, types
+    from numba import njit, prange, types
     from numba.extending import intrinsic
 
     HAVE_NUMBA = True
@@ -975,9 +976,9 @@ class CompiledBDeu:
         The parameter of the structure prior; None (or 0 with ``"tetrad"``)
         leaves the prior out.
     n_jobs : int, default=1
-        Threads for large batches of candidates, at most
-        ``numba.config.NUMBA_NUM_THREADS``. Each candidate is scored as with
-        one thread, so results do not depend on it.
+        Threads for large batches of candidates, -1 for every thread numba
+        has. Each candidate is scored as with one thread, so results do not
+        depend on it.
     prior : {"bernoulli", "tetrad"}, default="bernoulli"
         The structure prior.
     kernel : {"cells", "legacy"}, default="cells"
@@ -1081,7 +1082,7 @@ class CompiledBDeu:
         dense = 4 * n if dense_cells is None else int(dense_cells)
         self._dense_cells = dense
         # numba refuses more threads than it started with (the number of cores by default).
-        self._threads = max(1, min(int(n_jobs), config.NUMBA_NUM_THREADS))  # type: ignore[attr-defined]
+        self._threads = n_threads(n_jobs)
         self._hists = np.zeros((self._threads, 4, n + 1), dtype=np.int64)
         self._cnts = np.zeros((self._threads, max(dense, mc * mc)), dtype=np.int32)
         self._auxs = np.zeros((self._threads, 3, max(n, mc)), dtype=np.int64)
@@ -1156,30 +1157,30 @@ class CompiledBDeu:
         if self.kernel == "cells":
             cperm, cstart, ccfg, bits, qf = self._grouped(node, par)
             if self._threads > 1 and cands.shape[0] >= 8 * self._threads:
-                set_num_threads(self._threads)
-                return _scores_cells_par(
-                    self._cols,
-                    self._cards,
-                    self._value_bits,
-                    self._offset,
-                    node,
-                    cperm,
-                    cstart,
-                    ccfg,
-                    bits,
-                    qf,
-                    cands,
-                    self.ess,
-                    prior,
-                    self._popcount_cells,
-                    self._lanes_rows,
-                    self._hists,
-                    self._works,
-                    self._marks,
-                    self._lg_keys,
-                    self._lg_stamps,
-                    self._lg_table,
-                )
+                with numba_threads(self._threads):
+                    return _scores_cells_par(
+                        self._cols,
+                        self._cards,
+                        self._value_bits,
+                        self._offset,
+                        node,
+                        cperm,
+                        cstart,
+                        ccfg,
+                        bits,
+                        qf,
+                        cands,
+                        self.ess,
+                        prior,
+                        self._popcount_cells,
+                        self._lanes_rows,
+                        self._hists,
+                        self._works,
+                        self._marks,
+                        self._lg_keys,
+                        self._lg_stamps,
+                        self._lg_table,
+                    )
             return _scores_cells(
                 self._cols,
                 self._cards,
@@ -1205,33 +1206,33 @@ class CompiledBDeu:
             )
         g, G, perm, start, ch, njk, bits, qf = self._grouped(node, par)
         if self._threads > 1 and cands.shape[0] >= 8 * self._threads:
-            set_num_threads(self._threads)
-            return _scores_par(
-                self._cols,
-                self._cards,
-                self._value_bits,
-                self._offset,
-                node,
-                g,
-                G,
-                perm,
-                start,
-                ch,
-                njk,
-                bits,
-                qf,
-                cands,
-                self.ess,
-                prior,
-                self._popcount_cells,
-                self._dense_cells,
-                self._hists,
-                self._cnts,
-                self._auxs,
-                self._lg_keys,
-                self._lg_stamps,
-                self._lg_table,
-            )
+            with numba_threads(self._threads):
+                return _scores_par(
+                    self._cols,
+                    self._cards,
+                    self._value_bits,
+                    self._offset,
+                    node,
+                    g,
+                    G,
+                    perm,
+                    start,
+                    ch,
+                    njk,
+                    bits,
+                    qf,
+                    cands,
+                    self.ess,
+                    prior,
+                    self._popcount_cells,
+                    self._dense_cells,
+                    self._hists,
+                    self._cnts,
+                    self._auxs,
+                    self._lg_keys,
+                    self._lg_stamps,
+                    self._lg_table,
+                )
         return _scores(
             self._cols,
             self._cards,
@@ -1301,13 +1302,14 @@ class CompiledBDeu:
         return self._run(int(node), par, cand, self._prior_term(len(par) + 1))
 
 
-def engine_of(score: BDeuScore | CompiledBDeu) -> CompiledBDeu:
-    """Return the engine the order searches, hill climbing, FLOP and the exact searches score with.
+def engine_of(score: Any) -> Any:
+    """Return what the order searches, hill climbing, FLOP and the exact searches score with.
 
     That is ``score._engine()`` for a :class:`~causalbase.scores.BDeuScore`.
-    Any other object with the engine's ``local_score(node, parents)`` and
-    ``local_scores_add(node, parents, candidates)`` is returned as it is: an
-    engine with other kernel settings, or a score of one's own.
+    Any other object with ``local_score(node, parents)`` and
+    ``local_scores_add(node, parents, candidates)`` is returned as it is: every
+    other :class:`~causalbase.scores.FamilyScore`, an engine with other kernel
+    settings, or a score of one's own.
 
     Raises
     ------
@@ -1318,4 +1320,7 @@ def engine_of(score: BDeuScore | CompiledBDeu) -> CompiledBDeu:
         return score._engine()
     if hasattr(score, "local_score") and hasattr(score, "local_scores_add"):
         return score
-    raise TypeError(f"the search takes a BDeuScore, got {type(score).__name__}")
+    raise TypeError(
+        "the search takes a score with local_score and local_scores_add, such as a "
+        f"FamilyScore, got {type(score).__name__}"
+    )

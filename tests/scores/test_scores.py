@@ -185,3 +185,21 @@ def test_scores_refuse_bad_settings_and_data() -> None:
         make_score("aic", discrete)  # type: ignore[arg-type]
     with pytest.raises(TypeError, match="ContinuousDataset"):
         make_score("gaussian_bic", discrete)
+
+
+def test_a_gaussian_parent_the_others_determine_explains_nothing_more() -> None:
+    """The residual is the least-squares one, and the parent still pays its penalty."""
+    rng = np.random.default_rng(5)
+    for seed in range(5):
+        x = _continuous(300, seed).values
+        weights = rng.normal(size=2)
+        values = np.column_stack([x, x[:, 0] * weights[0] + x[:, 1] * weights[1]])
+        data = ContinuousDataset(values, ["a", "b", "c", "d", "ab"])
+        score = GaussianBICScore(data, expected_parents=None)
+        design = np.column_stack([np.ones(300), values[:, [0, 1, 4]]])
+        residual = values[:, 2] - design @ np.linalg.lstsq(design, values[:, 2], rcond=None)[0]
+        lik = -300 / 2 * (math.log(2 * math.pi * (residual @ residual) / 300) + 1)
+        expected = lik - math.log(300) / 2 * (3 + 2)
+        assert score.local_score(2, {0, 1, 4}) == pytest.approx(expected, rel=1e-9)
+        together = score.local_scores_with(2, frozenset({0, 1}), [4])
+        assert together[0] == pytest.approx(expected, rel=1e-9)

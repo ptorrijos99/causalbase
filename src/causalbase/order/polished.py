@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 
 from causalbase._validation import check_count, check_time_limit, resolve_seed
-from causalbase.data import DiscreteDataset
+from causalbase.data import ContinuousDataset, DiscreteDataset
 from causalbase.graph import DAG
 from causalbase.order.evaluator import OrderScorer
 from causalbase.order.insertion import InsertionSearch
@@ -32,7 +32,6 @@ from causalbase.search import SearchResult, ges, xges
 
 if TYPE_CHECKING:
     from causalbase.scores import FamilyScore
-    from causalbase.scores.bdeu import BDeuScore
 
 __all__ = ["Polish", "order_search"]
 
@@ -42,17 +41,17 @@ Polish = Literal["ges", "xges"]
 
 def _polish(kind: Polish, score: FamilyScore, dag: DAG) -> DAG:
     if kind == "ges":
-        return ges(score, initial_graph=dag).to_dag()
-    return xges(score, initial_graph=dag, extended=True).to_dag()
+        return ges(score, initial_graph=dag).dag
+    return xges(score, initial_graph=dag, extended=True).dag
 
 
-def ges_order(score: BDeuScore, kind: Polish = "ges") -> list[int]:
+def ges_order(score: FamilyScore, kind: Polish = "ges") -> list[int]:
     """Return a topological order of the network GES (or XGES) learns with `score`."""
     search = ges if kind == "ges" else xges
-    return [int(v) for v in search(score).to_dag().topological_order()]
+    return [int(v) for v in search(score).dag.topological_order()]
 
 
-def start_order(score: BDeuScore, initial_order: Sequence[int] | None) -> list[int]:
+def start_order(score: FamilyScore, initial_order: Sequence[int] | None) -> list[int]:
     """Return `initial_order` as a list, or GES's order when it is None.
 
     Raises ValueError unless the order holds every variable once.
@@ -93,9 +92,9 @@ class PolishedILS:
     Parameters
     ----------
     scorer : OrderScorer
-        Order evaluator. Its score (``scorer.family_score``), a
-        :class:`~causalbase.scores.BDeuScore`, is the one the polish searches
-        and its compiled engine the one the networks are scored with.
+        Order evaluator. Its score (``scorer.family_score``) is the one the
+        polish searches and the networks are scored with (through its
+        compiled engine for a :class:`~causalbase.scores.BDeuScore`).
     random_state : int or None, default=None
         Seeds every random choice; None draws a fresh seed.
     n_swaps : int or None, default=None
@@ -123,14 +122,16 @@ class PolishedILS:
             raise ValueError(f"polish must be 'ges' or 'xges', not {polish!r}")
         self.polish: Polish = polish
         self.scorer = scorer
-        family: BDeuScore = scorer.family_score
-        self.data: DiscreteDataset = family.data
-        self.ess = float(family.ess)
+        family = scorer.family_score
+        self.data: DiscreteDataset | ContinuousDataset | None = getattr(family, "data", None)
+        ess = getattr(family, "ess", None)
+        self.ess = None if ess is None else float(ess)
         # GES and XGES search the score's view (itself, or the Bernoulli BDeu with Tetrad's p),
         # one for the whole search so that the polishes share its cache; the networks are
         # scored with the engine the evaluator scores with.
         self._family = family
-        self._view = family._search_view()
+        view = getattr(family, "_search_view", None)
+        self._view = view() if view is not None else family
         self._engine = engine_of(family)
         self.search = InsertionSearch(scorer)
         self.n = scorer.n_vars
@@ -194,7 +195,7 @@ class PolishedILS:
 
 
 def order_search(
-    score: BDeuScore,
+    score: FamilyScore,
     initial_order: Sequence[int] | None = None,
     *,
     polish: Polish = "ges",
@@ -217,10 +218,10 @@ def order_search(
 
     Parameters
     ----------
-    score : BDeuScore
-        The score, with either prior. Orders and networks are scored with its
-        compiled engine; GES and XGES search it as :func:`~causalbase.search.ges`
-        does.
+    score : FamilyScore
+        The score: BDeu with either prior, BIC, Gaussian BIC or BGe. Orders
+        and networks are scored with it (with its compiled engine for BDeu);
+        GES and XGES search it as :func:`~causalbase.search.ges` does.
     initial_order : sequence of int, optional
         Order the first local search starts from. By default a topological
         order of the network GES learns on the same score, learned before the

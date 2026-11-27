@@ -6,9 +6,8 @@ import math
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
-from numba import get_num_threads
 
-from causalbase._validation import check_n_jobs
+from causalbase._parallel import numba_threads
 from causalbase.scores._family import FamilyScore
 from causalbase.scores._kernels import (
     extension_buffers,
@@ -37,11 +36,11 @@ PRIORS: tuple[Prior, ...] = ("bernoulli", "tetrad")
 class _DiscreteScore(FamilyScore):
     """Counts families of a discrete dataset with the compiled kernels."""
 
-    def __init__(self, data: DiscreteDataset, expected_parents: float | None) -> None:
+    def __init__(self, data: DiscreteDataset, expected_parents: float | None, n_jobs: int) -> None:
         empty = [name for name, r in zip(data.names, data.cardinalities, strict=True) if r < 1]
         if empty:
             raise ValueError(f"variables with no levels cannot be scored: {empty}")
-        super().__init__(data.n_vars, expected_parents)
+        super().__init__(data.n_vars, expected_parents, n_jobs=n_jobs)
         self.data = data
         self._values = np.asfortranarray(data.values)
         self._cards = data.cardinalities.astype(np.int64)
@@ -64,25 +63,26 @@ class _DiscreteScore(FamilyScore):
     def _count_extensions(
         self, node: int, parents: npt.NDArray[np.int64], extra: npt.NDArray[np.int64], ess: float
     ) -> npt.NDArray[np.float64]:
-        threads = get_num_threads()
+        threads = self._threads
         if self._buffers is None or len(self._buffers[0]) < threads:
             self._buffers = extension_buffers(
                 self._values.shape[0], self._cards, len(self._scratch), threads
             )
         ints, floats = self._buffers
-        out: npt.NDArray[np.float64] = family_extensions(
-            self._values,
-            self._cards,
-            node,
-            parents,
-            extra,
-            ess,
-            len(self._scratch),
-            self._bits,
-            self._offsets,
-            ints[:threads],
-            floats[:threads],
-        )
+        with numba_threads(threads):
+            out: npt.NDArray[np.float64] = family_extensions(
+                self._values,
+                self._cards,
+                node,
+                parents,
+                extra,
+                ess,
+                len(self._scratch),
+                self._bits,
+                self._offsets,
+                ints[:threads],
+                floats[:threads],
+            )
         return out
 
 
@@ -131,9 +131,9 @@ class BDeuScore(_DiscreteScore):
     prior : {"bernoulli", "tetrad"}, default="bernoulli"
         The structure prior.
     n_jobs : int, default=1
-        Threads of the compiled engine for large batches of candidate parents
-        (the order searches, hill climbing, FLOP and, with ``"tetrad"``,
-        :meth:`local_scores_with`). Results do not depend on it.
+        Threads of the compiled kernels for large batches of candidate parents
+        and for the exact search; -1 is every thread numba has. Results do
+        not depend on it.
 
     Attributes
     ----------
@@ -141,16 +141,16 @@ class BDeuScore(_DiscreteScore):
         Families the compiled engine has scored so far, single or batched: the
         work of the order searches, hill climbing, FLOP and the exact searches,
         and, with ``"tetrad"``, of :meth:`local_score`,
-        :meth:`local_scores_with` and :meth:`score_dag`. GES and XGES are not
-        counted.
+        :meth:`local_scores_with` and :meth:`score_dag`. GES and XGES search
+        through the Bernoulli BDeu, so only the networks they report count.
 
     Raises
     ------
     ValueError
         If `ess` is not positive and finite, `prior` is unknown,
         `expected_parents` is out of range (positive for ``"bernoulli"``, at
-        least 0 and below ``n_rows - 1`` for ``"tetrad"``), or `n_jobs` is not
-        a positive integer.
+        least 0 and below ``n_rows - 1`` for ``"tetrad"``), or `n_jobs` is
+        neither a positive integer nor -1.
 
     Notes
     -----
@@ -165,7 +165,7 @@ class BDeuScore(_DiscreteScore):
     >>> from causalbase.scores import BDeuScore
     >>> from causalbase.search import ges
     >>> score = BDeuScore(load_asia().data, prior="tetrad")
-    >>> round(score.score_dag(ges(score).to_dag()), 2)
+    >>> round(score.score_dag(ges(score).dag), 2)
     -11347.46
     """
 
@@ -192,7 +192,6 @@ class BDeuScore(_DiscreteScore):
             raise ValueError(f"ess must be positive and finite, got {ess}")
         if prior not in PRIORS:
             raise ValueError(f"prior must be one of {PRIORS}, got {prior!r}")
-        check_n_jobs(n_jobs)
         if prior == "tetrad":
             if not isinstance(self, _TetradPriorBDeuScore):
                 raise TypeError(f"{type(self).__name__} takes prior='bernoulli' only")
@@ -202,13 +201,12 @@ class BDeuScore(_DiscreteScore):
                     "expected_parents must be at least 0 and below n_rows - 1 = "
                     f"{vm} for Tetrad's prior, got {expected_parents}"
                 )
-            super().__init__(data, None)
+            super().__init__(data, None, n_jobs)
             self.expected_parents = expected_parents
         else:
-            super().__init__(data, expected_parents)
+            super().__init__(data, expected_parents, n_jobs)
         self.ess = float(ess)
         self.prior: Prior = prior
-        self.n_jobs = int(n_jobs)
         self._compiled: CompiledBDeu | None = None
 
     @property
@@ -288,6 +286,10 @@ class BICScore(_DiscreteScore):
     expected_parents : float or None, default=1.0
         Expected number of parents per node under the structure prior, as in
         :class:`BDeuScore`. ``None`` is the plain BIC.
+    n_jobs : int, default=1
+        Threads of the compiled kernels for large batches of candidate parents
+        and for the exact search; -1 is every thread numba has. Results do
+        not depend on it.
 
     Notes
     -----
@@ -301,12 +303,13 @@ class BICScore(_DiscreteScore):
         *,
         penalty_discount: float = 1.0,
         expected_parents: float | None = 1.0,
+        n_jobs: int = 1,
     ) -> None:
         if not 0 < penalty_discount < math.inf:
             raise ValueError(
                 f"penalty_discount must be positive and finite, got {penalty_discount}"
             )
-        super().__init__(data, expected_parents)
+        super().__init__(data, expected_parents, n_jobs)
         self.penalty_discount = float(penalty_discount)
         self._per_parameter = penalty_discount * math.log(max(data.n_rows, 1)) / 2
 
@@ -326,3 +329,21 @@ class BICScore(_DiscreteScore):
             self._count_extensions(node, parents, extra, 0.0) - self._per_parameter * free
         )
         return out
+
+    def _superset_bound(self, node: int, parents: npt.NDArray[np.int64]) -> float:
+        """Return the bound of de Campos and Ji (2011) on the strict supersets of `parents`.
+
+        The maximised log likelihood is at most 0, and a strict superset has at
+        least one more parent, which multiplies the parent configurations by at
+        least the levels of the smallest variable left, so the penalty alone
+        bounds its score.
+        """
+        left = np.ones(self.n_vars, dtype=bool)
+        left[node] = False
+        left[parents] = False
+        if not left.any():
+            return -math.inf
+        q = float(np.prod(self._cards[parents].astype(np.float64)))
+        q *= float(self._cards[left].min())
+        free = q * float(self._cards[node] - 1)
+        return -self._per_parameter * free + self._prior_bound(parents.size + 1)

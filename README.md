@@ -11,14 +11,14 @@ causalbase learns the structure of Bayesian networks from data. GES and XGES ret
 
 | Estimator | Data | Search |
 |---|---|---|
-| `GES` | Discrete (BDeu, BIC) or continuous (Gaussian BIC) | Greedy equivalence search (Chickering, 2002) |
+| `GES` | Discrete (BDeu, BIC) or continuous (Gaussian BIC, BGe) | Greedy equivalence search (Chickering, 2002) |
 | `XGES` | The same | Extremely greedy equivalence search (Nazaret and Blei, 2024), which also deletes and reverses edges as it goes |
-| `OrderSearch` | Discrete (BDeu) | Iterated local search over variable orders, each local search ended by GES or XGES |
-| `FLOP` | Discrete (BDeu) | FLOP's search over orders (Wienöbst, Henckel and Weichwald, 2026) |
-| `HillClimbing` | Discrete (BDeu) | Hill climbing or tabu search over DAGs, with restarts |
-| `ExactSearch` | Discrete (BDeu) | The network of highest score, by dynamic programming, or the best one under a parent limit, by integer programming |
+| `OrderSearch` | The same | Iterated local search over variable orders, each local search ended by GES or XGES |
+| `FLOP` | The same | FLOP's search over orders (Wienöbst, Henckel and Weichwald, 2026) |
+| `HillClimbing` | The same | Hill climbing or tabu search over DAGs, with restarts |
+| `ExactSearch` | The same | The network of highest score, by dynamic programming, or the best one under a parent limit, by integer programming |
 
-Every estimator follows scikit-learn's conventions (hyperparameters in the constructor, `fit` to learn, results ending in an underscore) without depending on it, so `clone`, `GridSearchCV` and pipelines work, and `score(X)` is the log likelihood of held-out rows. BDeu comes with two structure priors, a Bernoulli prior on each possible parent and Tetrad 7.6.5's, whose scores it reproduces.
+Every estimator follows scikit-learn's conventions (hyperparameters in the constructor, `fit` to learn, results ending in an underscore) without depending on it, so `clone`, `GridSearchCV` and pipelines work, and `score(X)` is the log likelihood of held-out rows. BDeu comes with two structure priors, a Bernoulli prior on each possible parent and Tetrad 7.6.5's, whose scores it reproduces. Every estimator takes the score by name, `criterion="bdeu"` (the default), `"bic"`, `"gaussian_bic"` or `"bge"`, with the same score parameters, `fit(X, initial_graph=None)` and `n_jobs`.
 
 ## Installation
 
@@ -48,7 +48,7 @@ model.adjacency_  # the learned CPDAG, with the variable names
 shd(bundle.truth, model.dag_)  # structural Hamming distance to the true network
 ```
 
-Every distinct value of a column is a level, so a numeric column is read as categories. Continuous data takes `GES(criterion="gaussian_bic")`.
+Every distinct value of a column is a level, so a numeric column is read as categories. Continuous data takes `criterion="gaussian_bic"` or `criterion="bge"`, in any estimator.
 
 The searches over orders and over DAGs return one network:
 
@@ -59,7 +59,7 @@ model = OrderSearch(polish="xges", time_limit=60, random_state=0).fit(bundle.dat
 model.dag_, model.score_
 ```
 
-Behind each estimator on BDeu there is a function that takes the score and returns a `SearchResult` (`dag`, `score`, `n_iter`, `trace`, `info`), for those who want to choose the starting point, the limits or the score object themselves:
+Behind each estimator there is a function that takes the score and returns a `SearchResult` (`dag` and its class `cpdag`, `score`, `n_iter`, `trace`, `info`), for those who want to choose the starting point, the limits or the score object themselves:
 
 ```python
 from causalbase.order import order_search
@@ -70,7 +70,7 @@ result = order_search(score, polish="xges", max_iter=20, random_state=0)
 result.dag, result.score, result.info["accepted"]
 ```
 
-`causalbase.order` also has the pieces the order searches are built from (`OrderScorer`, `InsertionSearch`, `IteratedLocalSearch`, `pair_polish`), and `causalbase.exact.exact_search`, `causalbase.order.flop` and `causalbase.search.hill_climbing` are the functions behind the other estimators.
+`causalbase.order` also has the pieces the order searches are built from (`OrderScorer`, `InsertionSearch`, `IteratedLocalSearch`, `pair_polish`), and `causalbase.search.ges`, `xges` and `hill_climbing`, `causalbase.order.flop` and `causalbase.exact.exact_search` are the functions behind the other estimators.
 
 ## Speed
 

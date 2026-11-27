@@ -55,6 +55,10 @@ def check_time_limit(time_limit: object) -> None:
 
 
 def check_n_jobs(n_jobs: object) -> None:
-    """Raise ValueError unless `n_jobs` is a positive integer."""
-    if isinstance(n_jobs, bool) or not isinstance(n_jobs, Integral) or n_jobs < 1:
-        raise ValueError(f"n_jobs must be a positive integer, got {n_jobs!r}")
+    """Raise ValueError unless `n_jobs` is a positive integer or -1 (every thread)."""
+    if (
+        isinstance(n_jobs, bool)
+        or not isinstance(n_jobs, Integral)
+        or (n_jobs < 1 and n_jobs != -1)
+    ):
+        raise ValueError(f"n_jobs must be a positive integer or -1, got {n_jobs!r}")

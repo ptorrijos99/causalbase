@@ -97,7 +97,7 @@ def test_added_and_removed_predecessors_same_node(alarm):
 
 def test_true_order_beats_ges(alarm):
     ds, true, score = alarm
-    ges_dag = ges(BDeuScore(ds, prior="tetrad")).to_dag()
+    ges_dag = ges(BDeuScore(ds, prior="tetrad")).dag
     res = OrderScorer(score).score(true.topological_order())
     assert res.total >= score.score_dag(ges_dag)
 

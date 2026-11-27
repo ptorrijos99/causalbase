@@ -28,7 +28,9 @@ Estimators
 
 Every estimator is importable from ``causalbase`` itself. Hyperparameters go
 to the constructor, :meth:`fit` learns, and the results end in an underscore.
-The four on BDeu run a function of their subpackage, listed below, which
+They share one interface: the score's parameters first (``criterion``
+names the score), ``n_jobs`` last, ``fit(X, initial_graph=None)``, and the
+same results. Each runs a function of its subpackage, listed below, which
 returns a :class:`~causalbase.search.SearchResult`.
 
 .. currentmodule:: causalbase
@@ -90,8 +92,9 @@ Scores
 ``Score`` is the interface every search reads; a new score implements it,
 usually by subclassing :class:`~causalbase.scores.FamilyScore`, which adds the
 cache, the batching and the structure prior. ``Prior`` names the structure
-priors of BDeu (``"bernoulli"`` and ``"tetrad"``) and ``ScoreName`` the
-scores ``make_score`` builds.
+priors of BDeu (``"bernoulli"`` and ``"tetrad"``), ``ScoreName`` the
+scores ``make_score`` builds and ``CONTINUOUS_SCORES`` those of them that take
+continuous data. Every search takes every score.
 
 .. autosummary::
    :toctree: generated/
@@ -102,6 +105,7 @@ scores ``make_score`` builds.
    scores.BDeuScore
    scores.BICScore
    scores.GaussianBICScore
+   scores.BGeScore
 
 .. autosummary::
    :toctree: generated/

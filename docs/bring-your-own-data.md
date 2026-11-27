@@ -1,6 +1,6 @@
 # Bring your own data
 
-Every estimator takes fully observed categorical data, and `GES` and `XGES` also take continuous data with `criterion="gaussian_bic"`. None of them handles missing values.
+Every estimator takes fully observed categorical data, and continuous data with `criterion="gaussian_bic"` or `criterion="bge"`. None of them handles missing values.
 
 ## Tables the estimators accept
 
@@ -31,9 +31,10 @@ data = DiscreteDataset.from_csv("cohort.csv")  # .csv.gz works too
 
 ```python
 GES(criterion="gaussian_bic").fit(frame)  # every column numeric
+OrderSearch(criterion="bge", time_limit=30).fit(frame)
 ```
 
-The Gaussian BIC scores a linear Gaussian model of each node given its parents, from the covariance matrix, so the columns are read as numbers and nothing is discretised. `causalbase.data.ContinuousDataset.from_csv` and `as_continuous` build the dataset explicitly. The searches on BDeu need categorical data; discretise continuous columns before passing them.
+Both scores model each node as a linear Gaussian function of its parents and read only the covariance matrix, so the columns are read as numbers and nothing is discretised. The Gaussian BIC is the penalised likelihood; BGe the Bayesian marginal likelihood, which gives the same score to every DAG of an equivalence class. BGe's prior does not rescale with the data, so standardise the columns if their units differ widely. `causalbase.data.ContinuousDataset.from_csv` and `as_continuous` build the dataset explicitly.
 
 ## Encoding several tables at once
 

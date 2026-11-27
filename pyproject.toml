@@ -120,6 +120,8 @@ module = [
     "causalbase.exact.dp",
     "causalbase.exact.ilp",
     "causalbase.scores._compiled",
+    "causalbase.scores._gaussian_kernels",
+    "causalbase.exact._gaussian",
     "causalbase.search.hill_climb",
 ]
 disallow_untyped_decorators = false

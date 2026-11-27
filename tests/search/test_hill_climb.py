@@ -150,7 +150,7 @@ def test_tabu_search_never_ends_below_the_plain_climb(alarm):
 
 def test_a_start_dag_is_climbed_from(alarm):
     ds, fast = alarm
-    start = ges(fast).to_dag()
+    start = ges(fast).dag
     res = hill_climbing(fast, start)
     assert res.score >= fast.score_dag(start) - 1e-9
 

@@ -2,21 +2,20 @@
 
 Six estimators cover the common cases:
 
-* :class:`GES` learns a causal structure from discrete or continuous data, and
-  :class:`XGES` does so with a search that removes edges as it goes.
-* :class:`OrderSearch` learns a Bayesian network from discrete data by
-  iterated local search over variable orders, polished by GES or XGES, and
-  :class:`FLOP` with FLOP's search over orders.
+* :class:`GES` learns a causal structure, and :class:`XGES` does so with a
+  search that removes edges as it goes.
+* :class:`OrderSearch` learns a Bayesian network by iterated local search
+  over variable orders, polished by GES or XGES, and :class:`FLOP` with
+  FLOP's search over orders.
 * :class:`HillClimbing` climbs over DAGs, optionally as a tabu search with
   restarts, and :class:`ExactSearch` finds the network of highest score.
 
-The last four score with the compiled engine of
-:class:`~causalbase.scores.BDeuScore`, with its default Bernoulli structure
-prior or Tetrad's (``prior="tetrad"``); the functions behind them are
-:func:`~causalbase.order.order_search`, :func:`~causalbase.order.flop`,
-:func:`~causalbase.search.hill_climbing` and :func:`~causalbase.exact.exact_search`.
-Each estimator follows scikit-learn's conventions: hyperparameters go to the
-constructor, ``fit`` learns, and results end in an underscore. Federated
+Each takes any of the four scores by name (``criterion``): BDeu or BIC on
+discrete data, the Gaussian BIC or BGe on continuous data. They share their
+interface and follow scikit-learn's conventions: hyperparameters go to the
+constructor, ``fit`` learns, and results end in an underscore. The function
+behind each, which takes a score object and returns a
+:class:`~causalbase.search.SearchResult`, is in its subpackage. Federated
 learning over data held by several sites lives in the ``fedcausal`` package,
 which builds on this one.
 """

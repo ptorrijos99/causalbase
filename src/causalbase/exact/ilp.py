@@ -1,14 +1,15 @@
 """Optimal DAG under a parent-set size limit, by integer programming.
 
 It is meant for networks too large for :mod:`causalbase.exact.dp`. The local
-score of every parent set of at most ``max_size`` variables is computed with
-the kernels of :mod:`causalbase.exact.dp` (bit for bit the compiled engine), the
-sets that do not beat all their subsets are dropped, and the remaining
-candidates enter an integer program in the style of GOBNILP (Cussens 2011;
-Bartlett and Cussens 2017), solved with SCIP through PySCIPOpt: one binary per
-candidate parent set, exactly one chosen per variable, and acyclicity through
-cluster constraints (every set ``C`` of variables has a member with no parent
-in ``C``), separated when a solution violates them.
+score of every parent set of at most ``max_size`` variables is computed (for
+BDeu with the kernels of :mod:`causalbase.exact.dp`, bit for bit the compiled
+engine; for the other scores family by family), the sets that do not beat all
+their subsets are dropped, and the remaining candidates enter an integer
+program in the style of GOBNILP (Cussens 2011; Bartlett and Cussens 2017),
+solved with SCIP through PySCIPOpt: one binary per candidate parent set,
+exactly one chosen per variable, and acyclicity through cluster constraints
+(every set ``C`` of variables has a member with no parent in ``C``),
+separated when a solution violates them.
 
 The result is optimal among the DAGs whose parent sets have at most
 ``max_size`` variables; it is the global optimum only if no larger parent set
@@ -21,19 +22,26 @@ from __future__ import annotations
 import math
 import time
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import numpy as np
 from numba import njit, prange
 
-from causalbase.exact.dp import _priors, _qf, _refine, _score
+from causalbase._parallel import numba_threads
+from causalbase.exact._gaussian import gaussian_limited_scores
+from causalbase.exact.dp import (
+    _qf,
+    _refine,
+    _score,
+    _threads_of,
+    counted,
+    gaussian_parts,
+    walk_parent_sets,
+)
 from causalbase.graph import DAG
 from causalbase.scores._compiled import engine_of
+from causalbase.scores.gaussian import _GaussianScore
 from causalbase.search._result import SearchResult
-
-if TYPE_CHECKING:
-    from causalbase.scores._compiled import CompiledBDeu
-    from causalbase.scores.bdeu import BDeuScore
 
 __all__: list[str] = []
 
@@ -50,11 +58,14 @@ def _limited_scores(
     starts: np.ndarray,
     out_masks: np.ndarray,
     out_scores: np.ndarray,
+    kind: int,
+    per: float,
 ) -> None:
     """Score every non-empty parent set of at most ``kmax`` variables.
 
     Chunk ``i`` holds the sets whose smallest variable is ``i``, written from
-    ``starts[i]`` in depth-first order.
+    ``starts[i]`` in depth-first order. ``kind`` and ``per`` choose the score,
+    as in :func:`causalbase.exact.dp._score`.
     """
     m, n = cols.shape
     mc = 1
@@ -74,7 +85,9 @@ def _limited_scores(
         pos = starts[i]
         G = _refine(gs[0], cols[i], cards[i], gs[1], ids, made, child, r, cell)
         S = np.int64(1) << i
-        s, K = _score(G, r, _qf(S, cards, m), ess, priors[1], cell, hist, keys, n_keys, table)
+        s, K = _score(
+            G, r, _qf(S, cards, m), ess, priors[1], cell, hist, keys, n_keys, table, kind, per
+        )
         out_masks[pos] = S
         out_scores[pos] = s
         pos += 1
@@ -90,7 +103,18 @@ def _limited_scores(
             Gn = _refine(gs[depth], cols[j], cards[j], gs[depth + 1], ids, made, child, r, cell)
             S = masks[depth] | (np.int64(1) << j)
             s, K = _score(
-                Gn, r, _qf(S, cards, m), ess, priors[depth + 1], cell, hist, keys, n_keys, table
+                Gn,
+                r,
+                _qf(S, cards, m),
+                ess,
+                priors[depth + 1],
+                cell,
+                hist,
+                keys,
+                n_keys,
+                table,
+                kind,
+                per,
             )
             out_masks[pos] = S
             out_scores[pos] = s
@@ -138,31 +162,40 @@ def _check_width(p: int) -> None:
         )
 
 
-def limited_candidates(
-    score: BDeuScore | CompiledBDeu, v: int, max_size: int
-) -> tuple[np.ndarray, np.ndarray, int]:
+def limited_candidates(score: Any, v: int, max_size: int) -> tuple[np.ndarray, np.ndarray, int]:
     """Candidate parent sets of ``v`` among the sets of at most ``max_size`` variables.
 
     Returns the candidates as bitmasks over the other variables (bit ``b`` is
     the ``b``-th other variable in increasing order) with their scores, by
-    decreasing score, and how many sets were scored. `score` is a
-    :class:`~causalbase.scores.BDeuScore` or its compiled engine. The masks
-    are int64, so the data may have at most 64 variables.
+    decreasing score, and how many sets were scored. BDeu and the discrete
+    BIC are scored by the counting kernels, the Gaussian scores by those of
+    :mod:`causalbase.exact._gaussian`, any other score by
+    :func:`~causalbase.exact.dp.walk_parent_sets`. The masks are int64, so the
+    data may have at most 64 variables.
     """
     score = engine_of(score)
-    data = score.data
-    p = data.n_vars
-    _check_width(p)
-    if data.n_rows >= 2**15 or max(data.cardinalities) > 255:
-        raise ValueError("the kernel counts in int16 and stores values in uint8")
-    others = np.array([u for u in range(p) if u != v], dtype=np.int64)
-    m = len(others)
+    _check_width(int(score.n_vars))
+    with numba_threads(_threads_of(score)):
+        masks, scores, total = _all_limited(score, v, max_size)
+    order = np.argsort(masks)
+    masks, scores = masks[order], scores[order]
+    sizes = np.array([bin(int(x)).count("1") for x in masks], dtype=np.int64)
+    keep = _sparse_candidates(masks, scores, sizes, min(max_size, int(score.n_vars) - 1))
+    cm, cs = masks[keep], scores[keep]
+    o = np.lexsort((cm, -cs))
+    return cm[o], cs[o], total
+
+
+def _all_limited(score: Any, v: int, max_size: int) -> tuple[np.ndarray, np.ndarray, int]:
+    """Score every parent set of ``v`` of at most ``max_size`` variables, in no set order."""
+    p = int(score.n_vars)
+    m = p - 1
     k = min(max_size, m)
-    values = np.asarray(data.values)
-    cols = np.ascontiguousarray(values[:, others].T.astype(np.uint8))
-    child = np.ascontiguousarray(values[:, v].astype(np.uint8))
-    cards = np.asarray(data.cardinalities, dtype=np.int64)[others].copy()
-    r = int(data.cardinalities[v])
+    found = counted(score, m)
+    gaussian = isinstance(score, _GaussianScore)
+    if found is None and not gaussian:
+        masks, scores = walk_parent_sets(score, v, max_size, prune=False)
+        return masks, scores, len(masks)
     counts = np.array(
         [sum(math.comb(m - 1 - i, s) for s in range(k)) for i in range(m)], dtype=np.int64
     )
@@ -171,18 +204,32 @@ def limited_candidates(
     total = int(counts.sum()) + 1
     masks = np.zeros(total, dtype=np.int64)
     scores = np.empty(total)
-    scores[0] = score.local_score(v, ())
-    if k > 0:
+    first = float(score.local_score(v, ()))
+    scores[0] = first if math.isfinite(first) else -np.inf
+    if k == 0:
+        return masks, scores, total
+    if found is not None:
+        data = found.data
+        others = np.array([u for u in range(p) if u != v], dtype=np.int64)
+        values = np.asarray(data.values)
         _limited_scores(
-            cols, cards, child, r, score.ess, _priors(score, m), k, starts, masks, scores
+            np.ascontiguousarray(values[:, others].T.astype(np.uint8)),
+            np.asarray(data.cardinalities, dtype=np.int64)[others].copy(),
+            np.ascontiguousarray(values[:, v].astype(np.uint8)),
+            int(data.cardinalities[v]),
+            found.ess,
+            found.priors,
+            k,
+            starts,
+            masks,
+            scores,
+            found.kind,
+            found.per,
         )
-    order = np.argsort(masks)
-    masks, scores = masks[order], scores[order]
-    sizes = np.array([bin(int(x)).count("1") for x in masks], dtype=np.int64)
-    keep = _sparse_candidates(masks, scores, sizes, k)
-    cm, cs = masks[keep], scores[keep]
-    o = np.lexsort((cm, -cs))
-    return cm[o], cs[o], total
+    else:
+        M, a, b, c, floor = gaussian_parts(score, v)
+        gaussian_limited_scores(M, a, b, c, floor, k, starts, masks, scores)
+    return masks, scores, total
 
 
 def _to_vars(mask: int, v: int) -> list[int]:
@@ -191,7 +238,7 @@ def _to_vars(mask: int, v: int) -> list[int]:
 
 
 def _ilp_search(
-    score: CompiledBDeu,
+    score: Any,
     max_size: int,
     start_order: Sequence[int] | None,
     time_limit: float | None,
@@ -203,8 +250,7 @@ def _ilp_search(
     consistent with it. See :func:`~causalbase.exact.exact_search` for the
     result.
     """
-    data = score.data
-    _check_width(data.n_vars)
+    _check_width(int(score.n_vars))
     try:
         # PySCIPOpt is optional: typed when installed, Any (and these ignores unused) otherwise.
         from pyscipopt import (  # type: ignore[attr-defined,unused-ignore]
@@ -218,7 +264,7 @@ def _ilp_search(
             'exact_search with max_parents needs PySCIPOpt: pip install "causalbase[exact]"'
         ) from exc
 
-    p = data.n_vars
+    p = int(score.n_vars)
     t0 = time.perf_counter()
     cands: list[list[tuple[frozenset[int], float]]]
     n_scored: list[int]

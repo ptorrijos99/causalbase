@@ -46,7 +46,7 @@ def test_random_state_reproduces_the_old_seed(alarm_small):
     assert res.score == pytest.approx(-6063.186205815752, rel=1e-12)
     assert [i for _, i, _ in res.trace] == [0, 1]
     assert len(res.dag.edges()) == 39
-    start = list(ges(score).to_dag().topological_order())
+    start = list(ges(score).dag.topological_order())
     again = flop(BDeuScore(alarm_small, prior="tetrad"), start, max_iter=2, random_state=1)
     assert again.score == res.score and sorted(again.dag.edges()) == sorted(res.dag.edges())
 

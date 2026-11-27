@@ -2,22 +2,22 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from causalbase.search import _operators as ops
 from causalbase.search._engine import marginal_sources, xges0
-from causalbase.search._ges import GES, _check_limit, _check_score, _start
+from causalbase.search._ges import _check_limit, _check_score, _start, value
+from causalbase.search._result import SearchResult
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from causalbase.graph import DAG, PDAG
-    from causalbase.scores import Prior, Score, ScoreName
+    from causalbase.scores import Score
     from causalbase.search._engine import Pair
-    from causalbase.search._knowledge import Knowledge, PairLike
+    from causalbase.search._knowledge import Knowledge
 
-__all__ = ["XGES", "xges"]
+__all__ = ["xges"]
 
 _Runner = Callable[["PDAG", "frozenset[Pair]", "set[int] | None", bool, bool], "tuple[PDAG, float]"]
 """XGES-0 from a graph, with banned pairs, the nodes an edit changed, whether to end
@@ -33,8 +33,8 @@ def xges(
     knowledge: Knowledge | None = None,
     max_parents: int | None = None,
     one_edge_faithfulness: bool = False,
-) -> PDAG:
-    """Run XGES with `score` and return the learned CPDAG.
+) -> SearchResult:
+    """Run XGES with `score` and return the learned equivalence class.
 
     XGES-0 applies, at every step, the best Delete that improves the score; if
     there is none, the best Reverse; if there is none, the best Insert. It
@@ -64,19 +64,33 @@ def xges(
 
     Returns
     -------
-    PDAG
-        The CPDAG of the learned equivalence class.
+    SearchResult
+        As :func:`~causalbase.search.ges` returns it, but ``n_iter`` counts
+        every operator XGES-0 applied, those of the forced deletions it then
+        rejected included; the ``trace`` has an entry at the start, after
+        XGES-0 and after each round of forced deletions that improved the
+        score, and ``info`` holds ``"rounds"``, the rounds of forced deletions.
 
     Raises
     ------
     ValueError
         If `initial_graph` has another number of nodes, or a limit is out of
         range.
+
+    Examples
+    --------
+    >>> from causalbase.datasets import load_asia
+    >>> from causalbase.scores import BDeuScore
+    >>> from causalbase.search import xges
+    >>> xges(BDeuScore(load_asia().data)).cpdag
+    PDAG(num_nodes=8, directed=..., undirected=...)
     """
+    original = score
     score, n_vars = _check_score(score)
     _check_limit("max_t_size", max_t_size)
     _check_limit("max_parents", max_parents)
     sources = marginal_sources(score, n_vars) if one_edge_faithfulness else None
+    steps = 0
 
     def run(
         pdag: PDAG,
@@ -85,7 +99,8 @@ def xges(
         exhaustive: bool,
         in_place: bool,
     ) -> tuple[PDAG, float]:
-        return xges0(
+        nonlocal steps
+        result, gain, done = xges0(
             score,
             pdag,
             max_t_size=max_t_size,
@@ -97,19 +112,33 @@ def xges(
             exhaustive=exhaustive,
             in_place=in_place,
         )
+        steps += done
+        return result, gain
 
-    cpdag, _ = run(_start(n_vars, initial_graph, knowledge), frozenset(), None, True, True)
-    if not extended:
-        return cpdag
+    t0 = time.perf_counter()
+    cpdag = _start(n_vars, initial_graph, knowledge)
+    trace = [(0.0, 0, value(original, cpdag))]
+    cpdag, _ = run(cpdag, frozenset(), None, True, True)
+    best = value(original, cpdag)
+    if steps:
+        trace.append((time.perf_counter() - t0, steps, best))
+    rounds = 0
+    if extended:
+        scale = max(abs(value(score, cpdag)), 1.0)
+        while True:
+            cpdag = _force_deletions(score, cpdag, run, knowledge, ops._REL_TOL * scale)
+            rounds += 1
+            now = value(original, cpdag)
+            if now > best:
+                best = now
+                trace.append((time.perf_counter() - t0, steps, best))
+            # The bars may hold back an improving Insert or Reverse; free them and see.
+            free, gain = run(cpdag, frozenset(), set(), True, False)
+            if gain <= ops._REL_TOL * scale:
+                break
+            cpdag = free
     dag = cpdag.to_dag()
-    scale = max(abs(sum(score.local_score(v, dag.parents(v)) for v in range(n_vars))), 1.0)
-    while True:
-        cpdag = _force_deletions(score, cpdag, run, knowledge, ops._REL_TOL * scale)
-        # The bars may hold back an improving Insert or Reverse; free them and see.
-        free, gain = run(cpdag, frozenset(), set(), True, False)
-        if gain <= ops._REL_TOL * scale:
-            return cpdag
-        cpdag = free
+    return SearchResult(dag, value(original, dag), steps, trace, {"rounds": rounds})
 
 
 def _force_deletions(
@@ -152,76 +181,3 @@ def _force_deletions(
             cpdag, _ = run(result, banned, set(), True, True)
             accepted = True
     return cpdag
-
-
-class XGES(GES):
-    """Learn a causal structure with Extremely Greedy Equivalence Search.
-
-    XGES (Nazaret and Blei, 2024) searches the same space as GES with the same
-    score, but interleaves its operators: it applies an improving Delete
-    whenever there is one, then a Reverse, and only then an Insert, so edges
-    added early do not lock the search into a worse optimum. ``extended=True``
-    then forces out each edge in turn and searches again from there.
-
-    Parameters
-    ----------
-    criterion, ess, expected_parents, prior, penalty_discount, max_parents, max_t_size
-        As in :class:`GES`.
-    required, forbidden, one_edge_faithfulness
-        As in :class:`GES`.
-    extended : bool, default=True
-        Run the forced deletions after XGES-0. ``False`` is XGES-0, several
-        times cheaper.
-
-    Attributes
-    ----------
-    cpdag_, dag_, score_, adjacency_, n_features_in_, feature_names_in_
-        As in :class:`GES`.
-
-    Examples
-    --------
-    >>> from causalbase import XGES
-    >>> from causalbase.datasets import load_asia
-    >>> model = XGES().fit(load_asia().data)
-    >>> model.cpdag_
-    PDAG(num_nodes=8, directed=..., undirected=...)
-    """
-
-    def __init__(
-        self,
-        criterion: ScoreName = "bdeu",
-        ess: float = 1.0,
-        expected_parents: float | None = 1.0,
-        prior: Prior = "bernoulli",
-        penalty_discount: float = 1.0,
-        max_parents: int | None = None,
-        max_t_size: int | None = None,
-        required: Sequence[PairLike] | None = None,
-        forbidden: Sequence[PairLike] | None = None,
-        one_edge_faithfulness: bool = False,
-        extended: bool = True,
-    ) -> None:
-        super().__init__(
-            criterion=criterion,
-            ess=ess,
-            expected_parents=expected_parents,
-            prior=prior,
-            penalty_discount=penalty_discount,
-            max_parents=max_parents,
-            max_t_size=max_t_size,
-            required=required,
-            forbidden=forbidden,
-            one_edge_faithfulness=one_edge_faithfulness,
-        )
-        self.extended = extended
-
-    def _search(self, score: Score, initial_graph: DAG | None, knowledge: Knowledge) -> PDAG:
-        return xges(
-            score,
-            initial_graph,
-            extended=self.extended,
-            max_t_size=self.max_t_size,
-            knowledge=knowledge,
-            max_parents=self.max_parents,
-            one_edge_faithfulness=self.one_edge_faithfulness,
-        )
