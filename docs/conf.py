@@ -19,8 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from causalbase import __version__  # noqa: E402
 
 project = "causalbase"
-author = "Pablo Torrijos"
-copyright = "2026, Pablo Torrijos"  # noqa: A001
+author = "Pablo Torrijos, José A. Gámez, José M. Puerta"
+copyright = "2026, causalbase developers"  # noqa: A001
 version = __version__
 release = __version__
 

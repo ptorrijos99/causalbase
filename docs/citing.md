@@ -4,7 +4,7 @@ If you use causalbase in a scientific publication, please cite:
 
 ```bibtex
 @software{causalbase,
-  author = {Torrijos, Pablo},
+  author = {Torrijos, Pablo and G{\'a}mez, Jos{\'e} A. and Puerta, Jos{\'e} M.},
   title = {causalbase: Bayesian network structure learning and causal discovery},
   year = {2026},
   url = {https://github.com/ptorrijos99/causalbase}

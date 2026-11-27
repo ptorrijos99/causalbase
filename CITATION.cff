@@ -8,6 +8,14 @@ authors:
     email: pablo.torrijos@uclm.es
     affiliation: "Universidad de Castilla-La Mancha"
     orcid: "https://orcid.org/0000-0002-8395-3848"
+  - family-names: Gámez
+    given-names: José A.
+    affiliation: "Universidad de Castilla-La Mancha"
+    orcid: "https://orcid.org/0000-0003-1188-1117"
+  - family-names: Puerta
+    given-names: José M.
+    affiliation: "Universidad de Castilla-La Mancha"
+    orcid: "https://orcid.org/0000-0002-9164-5191"
 version: "0.1.0"
 date-released: "2026-11-27"
 repository-code: "https://github.com/ptorrijos99/causalbase"
