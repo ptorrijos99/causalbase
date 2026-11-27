@@ -88,7 +88,7 @@ def test_the_topological_kick_reorders_within_the_best_network(alarm_small):
 def test_random_state_reproduces_the_old_seed(alarm_small):
     # Recorded with the retired IteratedLocalSearch(seed=4) from the GES order, 5 kicks.
     score = BDeuScore(alarm_small, prior="tetrad")
-    start = list(ges(score).to_dag().topological_order())
+    start = list(ges(score).dag.topological_order())
     res = IteratedLocalSearch(OrderScorer(score), random_state=4).run(start, max_iterations=5)
     assert isinstance(res, ILSResult)
     assert res.score == pytest.approx(-6064.86145288258, rel=1e-12)

@@ -4,20 +4,31 @@ All notable changes to causalbase are listed here. The project follows [semantic
 
 ## 0.2.0 (unreleased)
 
-Every search now takes every score, and BGe is new.
+Every search takes every score, every score runs on compiled kernels, and the six estimators and their functions share one interface, which breaks the API of 0.1.0 as listed below. BGe is new.
+
+### Breaking changes
+
+- `ges` and `xges` return a `SearchResult`, as the other searches do, instead of a `PDAG`: the learned class is `result.cpdag`, one DAG of it `result.dag`. `SearchResult` gained `cpdag` for every search, and `n_iter`, `trace` and `info` are now filled in by GES (Inserts and Deletes applied) and XGES (operators applied).
+- Every estimator takes the same score parameters first, in the order `criterion`, `ess`, `expected_parents`, `prior`, `penalty_discount`, `alpha_w`, and `n_jobs` last. `OrderSearch`, `FLOP`, `HillClimbing` and `ExactSearch` gained `criterion`, `penalty_discount` and `alpha_w`; `GES` and `XGES` gained `alpha_w` and `n_jobs`. A positional first argument, which used to be `ess`, is now the criterion, and `OrderSearch` takes `max_iter` before `time_limit`, as `FLOP` does.
+- Every estimator's `fit` is `fit(X, y=None, initial_graph=None)`, and every one keeps `dag_`, `cpdag_`, `score_`, `n_iter_`, `trace_` and `adjacency_`. `GES` and `XGES` gained `n_iter_` and `trace_`, and the others gained `initial_graph` (the first order of the order searches, and the first solution of `ExactSearch`'s integer program).
+- `n_jobs` belongs to the score. `BICScore`, `GaussianBICScore` and `BGeScore` take it as `BDeuScore` did, and `exact_search` no longer has its own; it uses the score's. `n_jobs=-1` means every thread numba has, everywhere. The discrete scores used to count GES's batches on every thread numba had whatever `n_jobs` said; they now use `n_jobs`, 1 by default, which on the bundled networks is as fast.
+- `exact_search` no longer refuses discrete data of 32768 rows or more, or with more than 255 levels: it scores such data through the score's own batches, more slowly.
+- The Gaussian BIC drops a parent that the others determine exactly instead of fitting it by least squares, which gives the same residual; its values may differ from 0.1.0's in the last digits.
 
 ### Scores
 
-- `BGeScore(data, *, alpha_mu=1.0, alpha_w=None, expected_parents=1.0)`, the Bayesian marginal likelihood of a linear Gaussian model under a normal-Wishart prior (Geiger and Heckerman, 1994; Kuipers, Moffa and Heckerman, 2014), with the prior mean at the sample means and `alpha_w` at `n_vars + 2` by default, as in bnlearn. Markov equivalent DAGs score the same. `make_score("bge", data, ess=...)` builds it with `ess` as `alpha_mu`, and every estimator takes `criterion="bge"`.
-- `FamilyScore.local_scores_add(node, parents, candidates)`, the batch method the order searches, hill climbing and FLOP call; it is `local_scores_with` under that name, so that every `FamilyScore`, including one of one's own, works with them.
+- `BGeScore(data, *, alpha_mu=1.0, alpha_w=None, expected_parents=1.0, n_jobs=1)`, the Bayesian marginal likelihood of a linear Gaussian model under a normal-Wishart prior (Geiger and Heckerman, 1994; Kuipers, Moffa and Heckerman, 2014), with the prior mean at the sample means and `alpha_w` at `n_vars + 2` by default, as in bnlearn. Markov equivalent DAGs score the same. The estimators and `make_score` take it as `criterion="bge"`, with `ess` as `alpha_mu`.
+- The Gaussian BIC and BGe run on compiled kernels that factor the parents' block of the covariance (or scale) matrix once per batch of candidates, with a Cholesky decomposition that drops linearly dependent parents. FLOP on the Gaussian BIC over 30 variables runs about ten times faster than in 0.1.0.
+- `make_score` takes every parameter of every score, `alpha_w` and `n_jobs` included, and builds the score of every estimator.
+- `FamilyScore.local_scores_add(node, parents, candidates)`, the batch the order searches, hill climbing and FLOP call; with it every `FamilyScore`, including one of one's own, works with every search. `FamilyScore` takes `n_jobs`.
 - `CONTINUOUS_SCORES` in `causalbase.scores` names the scores that take a `ContinuousDataset`.
 
-### Estimators and searches
+### Searches
 
-- `OrderSearch`, `FLOP`, `HillClimbing` and `ExactSearch` take `criterion` (`"bdeu"`, `"bic"`, `"gaussian_bic"` or `"bge"`) as their first parameter, as `GES` and `XGES` do, and `penalty_discount` after `prior`. A positional first argument, which used to be `ess`, is now the criterion. BDeu stays the default and runs on the same compiled engine, with the same results.
+- Every search function takes its score first and its starting point second (a graph for `ges`, `xges` and `hill_climbing`, an order for `order_search`, `flop` and `exact_search`, whose `initial_order` was keyword-only).
 - `order_search`, `flop`, `hill_climbing`, `pair_polish`, `OrderScorer`, `PolishedILS` and `exact_search` take any `FamilyScore`. `PolishedILS.ess` and `PolishedILS.data` are `None` for a score without them.
-- `exact_search` scores the parent sets of the scores other than BDeu in Python, pruning the discrete BIC with the bound of de Campos and Ji (2011) and the Gaussian BIC with the likelihood of the family of every other variable. BGe is not pruned.
-- `GES` and `XGES` take `criterion="bge"`, and `prior="tetrad"` is refused with any criterion other than `"bdeu"` in every estimator.
+- `exact_search` walks the parent sets of every score with compiled kernels: the counting kernels of BDeu also score the discrete BIC, and new kernels score the Gaussian BIC and BGe by one elimination step per set, about a tenth of a microsecond each, so 20 Gaussian variables take a second or two. The discrete BIC is pruned with the bound of de Campos and Ji (2011) and the Gaussian BIC with the likelihood of the family of every other variable; BGe is not pruned. A score of one's own is walked in Python.
+- The estimators live with their functions: `GES`, `XGES` and `HillClimbing` in `causalbase.search.estimator`, `OrderSearch` and `FLOP` in `causalbase.order.estimator`, `ExactSearch` in `causalbase.exact.estimator`. Their public import paths do not change.
 
 ## 0.1.0 (2026-11-27)
 

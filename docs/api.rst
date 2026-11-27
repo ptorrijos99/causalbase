@@ -28,9 +28,10 @@ Estimators
 
 Every estimator is importable from ``causalbase`` itself. Hyperparameters go
 to the constructor, :meth:`fit` learns, and the results end in an underscore.
-The four other than GES and XGES run a function of their subpackage,
-listed below, which returns a :class:`~causalbase.search.SearchResult`. Every
-estimator takes its score by name in ``criterion``.
+They share one interface: the score's parameters first (``criterion``
+names the score), ``n_jobs`` last, ``fit(X, initial_graph=None)``, and the
+same results. Each runs a function of its subpackage, listed below, which
+returns a :class:`~causalbase.search.SearchResult`.
 
 .. currentmodule:: causalbase
 

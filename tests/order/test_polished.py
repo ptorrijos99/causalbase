@@ -29,7 +29,7 @@ def _dag(parents):
 
 
 def _ges_order(score):
-    return list(ges(score).to_dag().topological_order())
+    return list(ges(score).dag.topological_order())
 
 
 def test_polishing_an_order_result_never_lowers_its_score(alarm_small):
@@ -41,19 +41,19 @@ def test_polishing_an_order_result_never_lowers_its_score(alarm_small):
         max_passes=1,
     )
     dag = _dag(sc.score(order).parents)
-    polished = ges(fast, dag).to_dag()
+    polished = ges(fast, dag).dag
     assert fast.score_dag(polished) >= fast.score_dag(dag) - 1e-6
 
 
 def test_order_search_reports_the_score_of_its_dag_and_beats_polished_ges(alarm_small):
     fast = BDeuScore(alarm_small, prior="tetrad")
-    start = ges(fast).to_dag()
+    start = ges(fast).dag
     res = order_search(fast, list(start.topological_order()), max_iter=8, random_state=3)
     assert isinstance(res, SearchResult)
     assert res.n_iter == 8
     assert set(res.info) == {"accepted"}
     assert abs(res.score - fast.score_dag(res.dag)) < 1e-6
-    assert res.score >= fast.score_dag(ges(fast, start).to_dag()) - 1e-6
+    assert res.score >= fast.score_dag(ges(fast, start).dag) - 1e-6
     scores = [s for _, _, s in res.trace]
     assert all(b > a for a, b in zip(scores, scores[1:], strict=False))
 
@@ -122,7 +122,7 @@ def test_xges_from_an_order_result_never_lowers_the_score(alarm_small):
         max_passes=1,
     )
     dag = _dag(sc.score(order).parents)
-    assert fast.score_dag(xges(fast, dag).to_dag()) >= fast.score_dag(dag) - 1e-6
+    assert fast.score_dag(xges(fast, dag).dag) >= fast.score_dag(dag) - 1e-6
 
 
 def test_order_search_with_xges_polish_reports_the_score_of_its_dag(alarm_small):
@@ -136,8 +136,8 @@ def test_order_search_with_xges_polish_reports_the_score_of_its_dag(alarm_small)
 def test_bdeu_score_keeps_the_equivalent_sample_size(alarm_small):
     fast10 = BDeuScore(alarm_small, ess=10.0, prior="tetrad")
     empty = DAG.from_edges(alarm_small.n_vars, [])
-    polished = ges(fast10, empty).to_dag()
-    assert fast10.score_dag(polished) == pytest.approx(fast10.score_dag(ges(fast10).to_dag()))
+    polished = ges(fast10, empty).dag
+    assert fast10.score_dag(polished) == pytest.approx(fast10.score_dag(ges(fast10).dag))
 
 
 def test_polished_ils_takes_the_equivalent_sample_size_from_its_scorer(alarm_small):

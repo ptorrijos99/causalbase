@@ -1,21 +1,26 @@
-"""The estimators on one local score: OrderSearch, HillClimbing, FLOP and ExactSearch."""
+"""What every estimator shares: fit, its results, score(X) and the parameter protocol."""
 
 from __future__ import annotations
+
+import inspect
+from textwrap import dedent
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from _problems import random_gaussian
 from causalbase import FLOP, GES, XGES, ExactSearch, HillClimbing, OrderSearch
+from causalbase._score_estimator import RESULT_ATTRIBUTES, SCORE_PARAMETERS
 from causalbase.datasets import load_asia
 from causalbase.exact import exact_search
 from causalbase.exceptions import NotFittedError
 from causalbase.graph import DAG, dag_to_cpdag
 from causalbase.order import flop, order_search
-from causalbase.scores import BDeuScore
+from causalbase.scores import BDeuScore, BGeScore
 from causalbase.search import ges, hill_climbing, xges
 
-ESTIMATORS = (OrderSearch, HillClimbing, FLOP, ExactSearch)
+ESTIMATORS = (GES, XGES, OrderSearch, HillClimbing, FLOP, ExactSearch)
 
 
 @pytest.fixture(scope="module")
@@ -31,7 +36,7 @@ def _fast(cls):
         return FLOP(max_iter=2, time_limit=None, random_state=0)
     if cls is HillClimbing:
         return HillClimbing(n_restarts=1, random_state=0)
-    return ExactSearch()
+    return cls()
 
 
 @pytest.mark.parametrize("cls", ESTIMATORS)
@@ -146,7 +151,7 @@ def test_ges_and_xges_take_the_same_score_parameters(asia):
         score = BDeuScore(asia, ess=2.0, expected_parents=1.5, prior=prior)
         for cls, search in ((GES, ges), (XGES, xges)):
             model = cls(ess=2.0, expected_parents=1.5, prior=prior).fit(asia)
-            assert model.cpdag_ == search(score)
+            assert model.cpdag_ == search(score).cpdag
             assert model.score_ == score.score_dag(model.dag_)
     assert repr(GES(prior="tetrad")) == "GES(prior='tetrad')"
     for model in (GES(prior="uniform"), GES(criterion="bic", prior="tetrad"), XGES(prior="")):
@@ -181,3 +186,62 @@ def test_clone_keeps_the_parameters():
         ExactSearch(max_parents=3),
     ):
         assert sklearn_base.clone(model).get_params() == model.get_params()
+
+
+SCORE_ARGUMENTS = ["criterion", "ess", "expected_parents", "prior", "penalty_discount", "alpha_w"]
+
+
+@pytest.mark.parametrize("cls", ESTIMATORS)
+def test_every_estimator_takes_and_documents_the_same_score_parameters(cls):
+    names = list(inspect.signature(cls.__init__).parameters)[1:]
+    assert names[: len(SCORE_ARGUMENTS)] == SCORE_ARGUMENTS and names[-1] == "n_jobs"
+    doc = inspect.getdoc(cls)
+    assert dedent(SCORE_PARAMETERS) in doc and dedent(RESULT_ATTRIBUTES) in doc
+    assert set(inspect.signature(cls.fit).parameters) == {"self", "X", "y", "initial_graph"}
+
+
+@pytest.mark.parametrize("cls", ESTIMATORS)
+def test_every_estimator_refuses_a_start_of_the_wrong_size_and_bad_threads(cls, asia):
+    with pytest.raises(ValueError, match="initial_graph"):
+        _fast(cls).fit(asia, initial_graph=DAG(asia.n_vars + 1))
+    for bad in (0, -2, 1.5):
+        with pytest.raises(ValueError, match="n_jobs"):
+            _fast(cls).set_params(n_jobs=bad).fit(asia)
+    assert _fast(cls).set_params(n_jobs=-1).fit(asia).score_ == pytest.approx(
+        _fast(cls).fit(asia).score_, rel=1e-12
+    )
+
+
+def test_every_estimator_starts_from_the_initial_graph(asia):
+    truth = load_asia().truth
+    score = BDeuScore(asia)
+    order = [int(v) for v in truth.topological_order()]
+    cases = [
+        (GES(), ges(score, truth).dag),
+        (XGES(), xges(score, truth).dag),
+        (HillClimbing(), hill_climbing(score, truth).dag),
+        (
+            OrderSearch(max_iter=2, time_limit=None, random_state=1),
+            order_search(score, order, max_iter=2, random_state=1).dag,
+        ),
+        (
+            FLOP(max_iter=2, time_limit=None, random_state=1),
+            flop(score, order, max_iter=2, random_state=1).dag,
+        ),
+        (ExactSearch(), exact_search(score).dag),
+    ]
+    for model, dag in cases:
+        model.fit(asia, initial_graph=truth)
+        assert model.score_ == pytest.approx(score.score_dag(dag), rel=1e-12), type(model).__name__
+    # A PDAG stands for a DAG it extends to.
+    assert GES().fit(asia, initial_graph=dag_to_cpdag(truth)).cpdag_ == ges(score, truth).cpdag
+
+
+def test_bge_takes_its_degrees_of_freedom_from_every_estimator():
+    data = random_gaussian(5, 300, 4)
+    score = BGeScore(data, alpha_mu=2.0, alpha_w=15.0)
+    for model in (GES("bge", ess=2.0, alpha_w=15.0), HillClimbing("bge", ess=2.0, alpha_w=15.0)):
+        model.fit(data)
+        assert model.score_ == pytest.approx(score.score_dag(model.dag_), rel=1e-12)
+    with pytest.raises(ValueError, match="alpha_w"):
+        GES("bge", alpha_w=5.0).fit(data)  # at most n_vars + 1

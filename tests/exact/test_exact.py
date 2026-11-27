@@ -69,7 +69,7 @@ def test_optimum_is_at_least_the_true_network_and_ges():
     fast = BDeuScore(ds, prior="tetrad")
     res = exact_search(fast)
     assert res.score >= fast.score_dag(true) - 1e-9
-    assert res.score >= fast.score_dag(ges(fast).to_dag()) - 1e-9
+    assert res.score >= fast.score_dag(ges(fast).dag) - 1e-9
     assert fast.score_dag(res.dag) == pytest.approx(res.score, abs=1e-9)
 
 
@@ -158,7 +158,7 @@ def test_a_parent_limit_runs_the_integer_program():
     pytest.importorskip("pyscipopt")
     ds, _ = load_cell("asia", 0)
     score = BDeuScore(ds, prior="tetrad")
-    start = list(ges(score).to_dag().topological_order())
+    start = list(ges(score).dag.topological_order())
     res = exact_search(score, max_parents=2, initial_order=start, time_limit=60.0)
     assert set(res.info) == DP_INFO | {"status", "gap", "dual_bound", "n_clusters"}
     assert res.info["max_candidate_size"] and max(res.info["max_candidate_size"]) <= 2

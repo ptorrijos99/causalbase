@@ -113,10 +113,11 @@ def _climb(
     changed: Iterable[int] | None = None,
     exhaustive: bool = True,
     in_place: bool = False,
-) -> tuple[PDAG, float]:
+) -> tuple[PDAG, float, int]:
     """Apply the best operator of the first kind that has one, until none improves.
 
-    Returns the final graph and the sum of the improvements applied. The climb
+    Returns the final graph, the sum of the improvements applied and the
+    number of operators applied. The climb
     first scores every child, or, given the nodes `changed` by an edit of a
     local optimum, only the children that edit touched. With `exhaustive` it
     re-scores every child when the cache runs dry; without, it re-scores after
@@ -204,18 +205,20 @@ def _climb(
 
     rescore(changed)
     gain = 0.0
+    steps = 0
     while True:
         step = next_step()
         if step is None:
             if not exhaustive:
-                return current, gain
+                return current, gain, steps
             rescore(None)
             step = next_step()
             if step is None:
-                return current, gain
+                return current, gain, steps
         k, (x, y, subset, delta) = step
         kinds[k].apply(current, x, y, subset)
         gain += delta
+        steps += 1
         # Every node whose marks may differ from before the step: those the operator
         # edited and those the completion changed. A node edited and then restored is
         # re-scored for nothing, which leaves its cached operators as they were.
@@ -243,8 +246,8 @@ def forward_phase(
     knowledge: Knowledge | None = None,
     max_parents: int | None = None,
     sources: Sources | None = None,
-) -> PDAG:
-    """Apply the best Insert until none improves the score; return the CPDAG.
+) -> tuple[PDAG, int]:
+    """Apply the best Insert until none improves the score; return the CPDAG and the steps.
 
     Parameters
     ----------
@@ -276,7 +279,8 @@ def forward_phase(
         knowledge.may_add if knowledge else None,
         uses_paths=True,
     )
-    return _climb(pdag, [kind])[0]
+    cpdag, _, steps = _climb(pdag, [kind])
+    return cpdag, steps
 
 
 def backward_phase(
@@ -284,8 +288,8 @@ def backward_phase(
     pdag: PDAG,
     candidates: frozenset[Pair] | None = None,
     knowledge: Knowledge | None = None,
-) -> PDAG:
-    """Apply the best Delete until none improves the score; return the CPDAG.
+) -> tuple[PDAG, int]:
+    """Apply the best Delete until none improves the score; return the CPDAG and the steps.
 
     Parameters
     ----------
@@ -309,7 +313,8 @@ def backward_phase(
         sources_of(candidates, pdag.num_nodes),
         knowledge.may_remove if knowledge else None,
     )
-    return _climb(pdag, [kind])[0]
+    cpdag, _, steps = _climb(pdag, [kind])
+    return cpdag, steps
 
 
 def xges0(
@@ -324,10 +329,11 @@ def xges0(
     changed: Iterable[int] | None = None,
     exhaustive: bool = True,
     in_place: bool = False,
-) -> tuple[PDAG, float]:
+) -> tuple[PDAG, float, int]:
     """Run XGES-0 from `pdag`: the best Delete, else the best Reverse, else the best Insert.
 
-    Returns the CPDAG it stops at and the improvement over `pdag`. `sources`
+    Returns the CPDAG it stops at, the improvement over `pdag` and the
+    operators applied. `sources`
     limits where Inserts come from, as in :func:`forward_phase`; `banned` are
     ordered pairs ``(x, y)`` that may not become ``x -> y`` by an Insert or a
     Reverse. `changed`, `exhaustive` and `in_place` are :func:`_climb`'s.

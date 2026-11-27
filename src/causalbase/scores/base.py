@@ -15,12 +15,16 @@ if TYPE_CHECKING:
 class Score(Protocol):
     """A decomposable score: a DAG scores the sum of its families' local scores.
 
-    This is what :func:`causalbase.search.ges` needs from a score, and the
-    extension point for new ones. Any object with an ``n_vars`` attribute (the
-    number of variables, which sets the size of the graph a search learns)
-    and these two methods works; the easiest way to write one is to subclass
-    :class:`~causalbase.scores.FamilyScore` and implement its
-    ``compute_family``, which adds caching, batching and the structure prior.
+    This is what :func:`causalbase.search.ges` and
+    :func:`causalbase.search.xges` need from a score, and the extension point
+    for new ones. Any object with an ``n_vars`` attribute (the number of
+    variables, which sets the size of the graph a search learns) and these
+    two methods works with them; the other searches also call
+    ``local_scores_add(node, parents, candidates)``. The easiest way to write
+    a score is to subclass :class:`~causalbase.scores.FamilyScore` and
+    implement its ``compute_family``, which adds caching, batching, the
+    structure prior and ``local_scores_add``, so the score works with every
+    search.
 
     Higher is better, and both methods must give the same value for the same
     family: the search compares their results directly.

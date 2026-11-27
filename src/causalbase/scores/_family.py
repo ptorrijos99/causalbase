@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from causalbase._parallel import n_threads
+
 if TYPE_CHECKING:
     from collections.abc import Collection, Sequence
 
@@ -43,6 +45,9 @@ class FamilyScore:
     expected_parents : float or None
         Expected in-degree under the structure prior; ``None`` is a uniform
         prior over structures.
+    n_jobs : int, default=1
+        Threads of the score's compiled kernels, kept as ``n_jobs``; -1 is
+        every thread numba has. A score without parallel kernels ignores it.
 
     Examples
     --------
@@ -55,7 +60,7 @@ class FamilyScore:
     >>> class PerParent(FamilyScore):
     ...     def compute_family(self, node, parents):
     ...         return 0.5 * len(parents)
-    >>> ges(PerParent(3, expected_parents=None))
+    >>> ges(PerParent(3, expected_parents=None)).cpdag
     PDAG(num_nodes=3, directed=0, undirected=3)
 
     Notes
@@ -65,11 +70,13 @@ class FamilyScore:
     once: give each thread its own. Several processes are fine, each with its own copy.
     """
 
-    def __init__(self, n_vars: int, expected_parents: float | None) -> None:
+    def __init__(self, n_vars: int, expected_parents: float | None, *, n_jobs: int = 1) -> None:
         if expected_parents is not None and not expected_parents > 0:
             raise ValueError(f"expected_parents must be positive, got {expected_parents}")
         self.n_vars = n_vars
         self.expected_parents = expected_parents
+        self.n_jobs = n_jobs
+        self._threads = n_threads(n_jobs)
         if expected_parents is None:
             self._log_odds = 0.0
         else:

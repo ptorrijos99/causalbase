@@ -127,19 +127,22 @@ def test_ges_and_xges_learn_what_they_learned_before(net):
     # The retired ges_dag and xges_dag ran on TetradBDeu(data).bdeu.
     ds, _ = load_cell(net, 0)
     score = BDeuScore(ds, prior="tetrad")
-    assert ges(score) == ges(TetradBDeuReference(ds).bdeu)
+    result = ges(score)
+    # The search runs on the view; the engine scores only the networks the result reports.
+    assert score.n_families <= (len(result.trace) + 1) * ds.n_vars
+    assert result.cpdag == ges(TetradBDeuReference(ds).bdeu).cpdag
     for extended in (False, True):
-        assert xges(score, extended=extended) == xges(
-            TetradBDeuReference(ds).bdeu, extended=extended
+        assert (
+            xges(score, extended=extended).cpdag
+            == xges(TetradBDeuReference(ds).bdeu, extended=extended).cpdag
         )
-    assert score.n_families == 0  # the searches ran on the view, not the engine
 
 
 def test_ges_gives_the_pinned_alarm_network():
     # Recorded with the retired ges_dag on the alarm sample (TetradBDeu objective).
     ds, _ = load_cell("alarm", 0)
     score = BDeuScore(ds, prior="tetrad")
-    dag = ges(score).to_dag()
+    dag = ges(score).dag
     assert isinstance(dag, DAG) and dag.num_edges == 45
     assert score.score_dag(dag) == pytest.approx(GES_ALARM_SCORE, rel=1e-12)
 
@@ -147,8 +150,8 @@ def test_ges_gives_the_pinned_alarm_network():
 def test_extended_xges_never_ends_below_xges0():
     ds, _ = load_cell("insurance", 0)
     score = BDeuScore(ds, prior="tetrad")
-    x0 = xges(score, extended=False).to_dag()
-    x = xges(score).to_dag()
+    x0 = xges(score, extended=False).dag
+    x = xges(score).dag
     assert isinstance(x, DAG) and isinstance(x0, DAG)
     assert score.score_dag(x) >= score.score_dag(x0) - 1e-9
 

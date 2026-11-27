@@ -47,8 +47,13 @@ def make_score(
     expected_parents: float | None = 1.0,
     prior: Prior = "bernoulli",
     penalty_discount: float = 1.0,
+    alpha_w: float | None = None,
+    n_jobs: int = 1,
 ) -> FamilyScore:
     """Return the score called `name` over `data`.
+
+    Every estimator builds its score here, so each parameter means the same in
+    all of them; one a score does not use is ignored.
 
     Parameters
     ----------
@@ -58,21 +63,25 @@ def make_score(
     data : DiscreteDataset or ContinuousDataset
         The data to score against.
     ess : float, default=1.0
-        Equivalent sample size: of the BDeu prior, and of the prior on the
-        mean for BGe (its `alpha_mu`).
+        Equivalent sample size: of the BDeu prior, and of BGe's prior on the
+        mean (its `alpha_mu`).
     expected_parents : float or None, default=1.0
         Structure prior, for every score; see :class:`FamilyScore`.
     prior : {"bernoulli", "tetrad"}, default="bernoulli"
         Which structure prior; ``"tetrad"`` (Tetrad 7.6.5's) for BDeu only,
         see :class:`BDeuScore`.
     penalty_discount : float, default=1.0
-        Multiplier of the BIC penalty, for the BIC scores only.
+        Multiplier of the penalty of the two BIC scores.
+    alpha_w : float or None, default=None
+        Degrees of freedom of BGe's Wishart prior; see :class:`BGeScore`.
+    n_jobs : int, default=1
+        Threads of the score's compiled kernels; -1 is every thread numba has.
 
     Raises
     ------
     ValueError
-        If `name` is not one of the four, or `prior` is unknown or not one of
-        the score's.
+        If `name` is not one of the four, `prior` is unknown or not one of
+        the score's, or a parameter is out of the score's range.
     TypeError
         If `data` is not the kind of dataset the score takes.
     """
@@ -89,10 +98,23 @@ def make_score(
         raise TypeError(f"the {name!r} score takes a {wanted.__name__}, got {type(data).__name__}")
     if isinstance(data, ContinuousDataset):
         if name == "bge":
-            return BGeScore(data, alpha_mu=ess, expected_parents=expected_parents)
+            return BGeScore(
+                data,
+                alpha_mu=ess,
+                alpha_w=alpha_w,
+                expected_parents=expected_parents,
+                n_jobs=n_jobs,
+            )
         return GaussianBICScore(
-            data, penalty_discount=penalty_discount, expected_parents=expected_parents
+            data,
+            penalty_discount=penalty_discount,
+            expected_parents=expected_parents,
+            n_jobs=n_jobs,
         )
     if name == "bdeu":
-        return BDeuScore(data, ess=ess, expected_parents=expected_parents, prior=prior)
-    return BICScore(data, penalty_discount=penalty_discount, expected_parents=expected_parents)
+        return BDeuScore(
+            data, ess=ess, expected_parents=expected_parents, prior=prior, n_jobs=n_jobs
+        )
+    return BICScore(
+        data, penalty_discount=penalty_discount, expected_parents=expected_parents, n_jobs=n_jobs
+    )

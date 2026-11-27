@@ -63,7 +63,7 @@ search.best_params_
 
 ## The functions behind the estimators
 
-Each estimator other than GES and XGES calls a function that takes a score object and returns a `SearchResult`. Calling it directly lets one score serve several searches, and lets a search start where another ended:
+Each estimator calls a function that takes a score object and returns a `SearchResult`. Calling it directly lets one score serve several searches, and lets a search start where another ended:
 
 ```python
 from causalbase.order import order_search
@@ -71,10 +71,10 @@ from causalbase.scores import BDeuScore
 from causalbase.search import hill_climbing, ges
 
 score = BDeuScore(bundle.data, prior="tetrad")
-start = ges(score).to_dag()
+start = ges(score).dag
 climbed = hill_climbing(score, start)
 result = order_search(score, max_iter=10, random_state=0)
-result.dag, result.score, result.n_iter, result.info
+result.dag, result.cpdag, result.score, result.n_iter, result.info
 ```
 
 ## Next

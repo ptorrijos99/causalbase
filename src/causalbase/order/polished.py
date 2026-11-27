@@ -41,14 +41,14 @@ Polish = Literal["ges", "xges"]
 
 def _polish(kind: Polish, score: FamilyScore, dag: DAG) -> DAG:
     if kind == "ges":
-        return ges(score, initial_graph=dag).to_dag()
-    return xges(score, initial_graph=dag, extended=True).to_dag()
+        return ges(score, initial_graph=dag).dag
+    return xges(score, initial_graph=dag, extended=True).dag
 
 
 def ges_order(score: FamilyScore, kind: Polish = "ges") -> list[int]:
     """Return a topological order of the network GES (or XGES) learns with `score`."""
     search = ges if kind == "ges" else xges
-    return [int(v) for v in search(score).to_dag().topological_order()]
+    return [int(v) for v in search(score).dag.topological_order()]
 
 
 def start_order(score: FamilyScore, initial_order: Sequence[int] | None) -> list[int]:

@@ -50,19 +50,22 @@ from __future__ import annotations
 
 import math
 import time
-from collections.abc import Iterator, Sequence
-from contextlib import contextmanager
+from collections.abc import Sequence
 from numbers import Integral
-from typing import Any
+from typing import Any, NamedTuple
 
-import numba
 import numpy as np
 from numba import njit, prange
 
+from causalbase._parallel import numba_threads
 from causalbase._validation import check_time_limit
+from causalbase.data import DiscreteDataset
+from causalbase.exact._gaussian import gaussian_all_scores
 from causalbase.graph import DAG
-from causalbase.scores._compiled import CompiledBDeu, _lg_row, _lik_at, engine_of
+from causalbase.scores._compiled import CompiledBDeu, _lg_row, _lik_at, _sort_prefix, engine_of
 from causalbase.scores._family import FamilyScore
+from causalbase.scores.bdeu import BICScore
+from causalbase.scores.gaussian import _GaussianScore
 from causalbase.search._result import SearchResult
 
 __all__ = ["exact_search"]
@@ -113,14 +116,16 @@ def _score(
     keys: np.ndarray,
     n_keys: np.ndarray,
     table: np.ndarray,
+    kind: int,
+    per: float,
 ) -> tuple[float, int]:
-    """Return the BDeu score from the counts of ``G`` configurations, and the non-empty cells.
+    """Return the score from the counts of ``G`` configurations, and the non-empty cells.
 
-    The counts are cleared.
-
-    Sums exactly as ``fastscore._lik_at``: cell counts then configuration
-    counts, each over its distinct values in increasing order, with the same
-    memoised ``lgamma``.
+    The counts are cleared. ``kind`` 0 is BDeu, summed exactly as the compiled
+    engine's ``_lik_at``: cell counts then configuration counts, each over its
+    distinct values in increasing order, with the same memoised ``lgamma``.
+    ``kind`` 1 is the BIC, ``sum n_jk log n_jk - sum n_j log n_j`` over the
+    same histograms less ``per`` per free parameter.
     """
     hk, hj, vk, vj = hist[0], hist[1], hist[2], hist[3]
     n_cell = 0
@@ -142,6 +147,20 @@ def _score(
             vj[n_conf] = t
             n_conf += 1
         hj[t] += 1
+    if kind == 1:
+        _sort_prefix(vk, n_cell)
+        _sort_prefix(vj, n_conf)
+        lik = 0.0
+        for x in range(n_cell):
+            c = vk[x]
+            lik += hk[c] * c * math.log(c)
+            hk[c] = 0
+        for x in range(n_conf):
+            t = vj[x]
+            lik -= hj[t] * t * math.log(t)
+            hj[t] = 0
+        s = lik - per * qf * (r - 1) + prior
+        return (s if math.isfinite(s) else np.nan), K
     a_j = ess / qf
     a_jk = ess / (qf * r)
     lik = _lik_at(
@@ -171,6 +190,23 @@ def _qf(mask: int | np.integer[Any], cards: np.ndarray, m: int) -> float:
     return q
 
 
+@njit(cache=True, nogil=True)
+def _bound(
+    kind: int, K: int, log_r: float, qf: float, cmin: float, per: float, r: int, prior: float
+) -> float:
+    """Return a bound on the score of every strict superset of a set.
+
+    The set has ``K`` non-empty cells and ``qf`` configurations, and a strict
+    superset at most the structure prior ``prior``. BDeu: every factor of the
+    Polya urn form is at most 1, and the first row of each of the ``K`` cells
+    contributes at most ``1 / r``. BIC: the log likelihood is at most 0, and one
+    more parent multiplies the configurations by at least ``cmin``.
+    """
+    if kind == 1:
+        return -per * (r - 1) * qf * cmin + prior
+    return -K * log_r + prior
+
+
 @njit(cache=True, nogil=True, parallel=True)
 def _all_scores(
     cols: np.ndarray,
@@ -182,19 +218,24 @@ def _all_scores(
     high: int,
     tol: float,
     out: np.ndarray,
+    kind: int,
+    per: float,
 ) -> np.ndarray:
     """Score every parent set (a bitmask over the rows of ``cols``) into ``out``.
 
     The top ``high`` bits split the sets into independent chunks; each chunk
     is a depth-first walk over the remaining bits in which a set's grouping
-    refines its parent's. Returns how many sets were scored per chunk.
+    refines its parent's. ``kind`` and ``per`` choose the score, as in
+    :func:`_score`. Returns how many sets were scored per chunk.
     """
     m, n = cols.shape
     lo = m - high
     n_chunks = 1 << high
     mc = 1
+    cmin = 1.0 * cards[0] if m else 1.0
     for b in range(m):
         mc = max(mc, cards[b])
+        cmin = min(cmin, 1.0 * cards[b])
     log_r = math.log(r)
     done = np.zeros(n_chunks, dtype=np.int64)
     for c in prange(n_chunks):
@@ -211,32 +252,24 @@ def _all_scores(
         # Base set of the chunk, built along a chain of its subsets that only serves the bound.
         for i in range(n):
             cell[child[i]] += 1
-        s, K = _score(1, r, 1.0, ess, priors[0], cell, hist, keys, n_keys, table)
+        s, K = _score(1, r, 1.0, ess, priors[0], cell, hist, keys, n_keys, table, kind, per)
         best = s
         G = 1
         cur = 0
         size = 0
-        closed = -K * log_r + priors[1] < best - tol
+        closed = _bound(kind, K, log_r, 1.0, cmin, per, r, priors[1]) < best - tol
         base = c << lo
         for b in range(lo, m):
             if (base >> b) & 1:
                 G = _refine(tmp[cur], cols[b], cards[b], tmp[1 - cur], ids, made, child, r, cell)
                 cur = 1 - cur
                 size += 1
+                qb = _qf(base & ((1 << (b + 1)) - 1), cards, m)
                 s, K = _score(
-                    G,
-                    r,
-                    _qf(base & ((1 << (b + 1)) - 1), cards, m),
-                    ess,
-                    priors[size],
-                    cell,
-                    hist,
-                    keys,
-                    n_keys,
-                    table,
+                    G, r, qb, ess, priors[size], cell, hist, keys, n_keys, table, kind, per
                 )
                 best = max(best, s)
-                if -K * log_r + priors[size + 1] < best - tol:
+                if _bound(kind, K, log_r, qb, cmin, per, r, priors[size + 1]) < best - tol:
                     closed = True
         out[base] = s
         cnt = 1
@@ -260,11 +293,12 @@ def _all_scores(
             Gn = _refine(gs[depth], cols[j], cards[j], gs[depth + 1], ids, made, child, r, cell)
             S = masks[depth] | (1 << j)
             k = size + depth + 1
-            s, K = _score(Gn, r, _qf(S, cards, m), ess, priors[k], cell, hist, keys, n_keys, table)
+            qs = _qf(S, cards, m)
+            s, K = _score(Gn, r, qs, ess, priors[k], cell, hist, keys, n_keys, table, kind, per)
             out[S] = s
             cnt += 1
             bd = max(bests[depth], s)
-            if -K * log_r + priors[k + 1] < bd - tol:
+            if _bound(kind, K, log_r, qs, cmin, per, r, priors[k + 1]) < bd - tol:
                 continue  # no superset of S in this subtree can be useful
             depth += 1
             Gs[depth] = Gn
@@ -331,6 +365,44 @@ def _priors(fast: CompiledBDeu, m: int) -> np.ndarray:
     return np.array([fast._prior_term(k) for k in range(m + 2)])
 
 
+class _Counted(NamedTuple):
+    """What the counting kernels need to score a discrete score: BDeu (kind 0) or BIC (kind 1)."""
+
+    data: DiscreteDataset
+    kind: int
+    ess: float
+    per: float
+    priors: np.ndarray
+
+
+def counted(score: Any, m: int) -> _Counted | None:
+    """Return how the counting kernels score `score`, or None if they cannot.
+
+    They take BDeu (through its engine) and the discrete BIC, on fewer than
+    32768 rows (counts are int16) and at most 255 levels per variable.
+    """
+    if isinstance(score, CompiledBDeu):
+        found = _Counted(score.data, 0, score.ess, 0.0, _priors(score, m))
+    elif isinstance(score, BICScore):
+        priors = np.arange(m + 2) * score._log_odds
+        found = _Counted(score.data, 1, 0.0, score._per_parameter, priors)
+    else:
+        return None
+    data = found.data
+    if data.n_rows >= 2**15 or max(data.cardinalities, default=1) > 255:
+        return None
+    return found
+
+
+def gaussian_parts(
+    score: _GaussianScore, v: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, float]:
+    """Return the matrix of `score` over the other variables then `v`, coefficients and floor."""
+    M, a, b, c = score._exact_parts()
+    idx = [u for u in range(score.n_vars) if u != v] + [v]
+    return np.ascontiguousarray(M[np.ix_(idx, idx)]), a, b, c, score._floor(v)
+
+
 def walk_parent_sets(
     score: Any, v: int, max_size: int, prune: bool, tol: float = 1e-6
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -388,43 +460,51 @@ def parent_set_scores(
     Bit ``b`` of the index stands for the ``b``-th other variable in
     increasing order. Sets that the superset bound proves useless are
     ``-inf`` (all sets are scored when ``prune`` is false). Returns the scores
-    and the number of sets actually scored. `score` is a
-    :class:`~causalbase.scores.BDeuScore` or its compiled engine, scored with
-    the compiled kernels, or any other score, scored by
-    :func:`walk_parent_sets`.
+    and the number of sets actually scored. BDeu (a
+    :class:`~causalbase.scores.BDeuScore` or its compiled engine) and the
+    discrete BIC are scored by the counting kernels, the Gaussian scores by
+    the kernels of :mod:`causalbase.exact._gaussian`, and any other score by
+    :func:`walk_parent_sets`. A score uses as many threads as its ``n_jobs``.
     """
     score = engine_of(score)
-    if not isinstance(score, CompiledBDeu):
-        m = int(score.n_vars) - 1
-        masks, values = walk_parent_sets(score, v, m, prune, tol)
-        out = np.full(1 << m, -np.inf)
-        out[masks] = values
-        return out, len(masks)
-    data = score.data
-    p = data.n_vars
-    if data.n_rows >= 2**15 or max(data.cardinalities) > 255:
-        raise ValueError("the kernel counts in int16 and stores values in uint8")
-    others = np.array([u for u in range(p) if u != v], dtype=np.int64)
-    m = len(others)
-    values = np.asarray(data.values)
-    cols = np.ascontiguousarray(values[:, others].T.astype(np.uint8))
-    child = np.ascontiguousarray(values[:, v].astype(np.uint8))
-    cards = np.asarray(data.cardinalities, dtype=np.int64)[others].copy()
-    r = int(data.cardinalities[v])
-    priors = _priors(score, m)
+    m = int(score.n_vars) - 1
     out = np.full(1 << m, -np.inf)
-    done = _all_scores(
-        cols,
-        cards,
-        child,
-        r,
-        score.ess,
-        priors,
-        min(high, m),
-        tol if prune else np.inf,
-        out,
-    )
-    return out, int(done.sum())
+    with numba_threads(_threads_of(score)):
+        found = counted(score, m)
+        if found is not None:
+            data = found.data
+            others = np.array([u for u in range(m + 1) if u != v], dtype=np.int64)
+            values = np.asarray(data.values)
+            done = _all_scores(
+                np.ascontiguousarray(values[:, others].T.astype(np.uint8)),
+                np.asarray(data.cardinalities, dtype=np.int64)[others].copy(),
+                np.ascontiguousarray(values[:, v].astype(np.uint8)),
+                int(data.cardinalities[v]),
+                found.ess,
+                found.priors,
+                min(high, m),
+                tol if prune else np.inf,
+                out,
+                found.kind,
+                found.per,
+            )
+            return out, int(done.sum())
+        if isinstance(score, _GaussianScore):
+            M, a, b, c, floor = gaussian_parts(score, v)
+            others = np.array([u for u in range(m + 1) if u != v], dtype=np.int64)
+            bounds = np.array(
+                [score._superset_bound(v, others[:k]) if prune else np.inf for k in range(m + 1)]
+            )
+            done = gaussian_all_scores(M, a, b, c, floor, min(high, m), bounds, tol, out)
+            return out, int(done.sum())
+    masks, values = walk_parent_sets(score, v, m, prune, tol)
+    out[masks] = values
+    return out, len(masks)
+
+
+def _threads_of(score: Any) -> int:
+    """Return the threads `score` runs its kernels on: its ``n_jobs``, 1 for a score without."""
+    return int(getattr(score, "_threads", 1))
 
 
 def prune_candidates(scores: np.ndarray, m: int) -> tuple[np.ndarray, np.ndarray]:
@@ -521,24 +601,12 @@ def _dp_search(score: Any, prune: bool, verbose: bool) -> SearchResult:
     return SearchResult(dag, float(best), 0, [(t2 - t0, 0, float(best))], info)
 
 
-@contextmanager
-def _numba_threads(n_jobs: int) -> Iterator[None]:
-    """Run the compiled kernels on `n_jobs` threads (at most numba's), restoring the count after."""
-    previous = numba.get_num_threads()
-    numba.set_num_threads(min(n_jobs, numba.config.NUMBA_NUM_THREADS))  # type: ignore[attr-defined]
-    try:
-        yield
-    finally:
-        numba.set_num_threads(previous)
-
-
 def exact_search(
     score: FamilyScore,
+    initial_order: Sequence[int] | None = None,
     *,
     max_parents: int | None = None,
-    initial_order: Sequence[int] | None = None,
     time_limit: float | None = None,
-    n_jobs: int = 1,
     prune: bool = True,
     verbose: bool = False,
 ) -> SearchResult:
@@ -554,24 +622,21 @@ def exact_search(
     Parameters
     ----------
     score : FamilyScore
-        The score. BDeu, with either prior, is scored with compiled kernels,
-        and its data must have fewer than 32768 rows and at most 255 levels
-        per variable. BIC, Gaussian BIC, BGe and scores of one's own are
-        scored family by family in Python (see the module docstring), which
-        limits them to about 20 variables without `max_parents`.
-    max_parents : int or None, default=None
-        Most parents of a node. None runs the dynamic programming.
+        The score. BDeu, the discrete BIC, the Gaussian BIC and BGe are
+        scored by compiled kernels on as many threads as the score's
+        ``n_jobs`` (the counting kernels of BDeu and the BIC on fewer than
+        32768 rows and at most 255 levels per variable; larger discrete data
+        goes through the score's own batches, more slowly). Any other score
+        is scored family by family in Python.
     initial_order : sequence of int, optional
         Integer program only: a variable order whose best consistent network
         seeds SCIP with a first solution.
+    max_parents : int or None, default=None
+        Most parents of a node. None runs the dynamic programming.
     time_limit : float or None, default=None
         Integer program only: SCIP's time limit in seconds. The result is then
         the best network found, and ``info["status"]`` says whether it is
         proved optimal.
-    n_jobs : int, default=1
-        Threads of the compiled kernels that score the parent sets of BDeu,
-        at most ``numba.config.NUMBA_NUM_THREADS``. The result does not
-        depend on it.
     prune : bool, default=True
         Dynamic programming only: skip the parent sets that the superset bound
         of the score proves useless (the result is the same). BGe has no bound,
@@ -595,8 +660,8 @@ def exact_search(
     Raises
     ------
     ValueError
-        If `max_parents` or `n_jobs` is out of range, or the data is too large
-        for the kernels (with `max_parents`, more than 64 variables).
+        If `max_parents` is out of range, or, with `max_parents`, there are
+        more than 64 variables.
 
     Examples
     --------
@@ -611,13 +676,10 @@ def exact_search(
         isinstance(max_parents, bool) or not isinstance(max_parents, Integral) or max_parents < 0
     ):
         raise ValueError(f"max_parents must be a non-negative integer or None, got {max_parents!r}")
-    if isinstance(n_jobs, bool) or not isinstance(n_jobs, Integral) or n_jobs < 1:
-        raise ValueError(f"n_jobs must be a positive integer, got {n_jobs!r}")
     check_time_limit(time_limit)
     engine = engine_of(score)
-    with _numba_threads(int(n_jobs)):
-        if max_parents is None:
-            return _dp_search(engine, prune, verbose)
-        from causalbase.exact.ilp import _ilp_search
+    if max_parents is None:
+        return _dp_search(engine, prune, verbose)
+    from causalbase.exact.ilp import _ilp_search
 
-        return _ilp_search(engine, int(max_parents), initial_order, time_limit, verbose)
+    return _ilp_search(engine, int(max_parents), initial_order, time_limit, verbose)

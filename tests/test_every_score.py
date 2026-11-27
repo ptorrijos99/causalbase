@@ -11,12 +11,20 @@ import pytest
 
 from _problems import best_dag_score, random_discrete, random_gaussian
 from causalbase import FLOP, GES, ExactSearch, HillClimbing, OrderSearch
+from causalbase.data import ContinuousDataset
 from causalbase.exact import exact_search
 from causalbase.exact.dp import parent_set_scores, prune_candidates
 from causalbase.graph import DAG
 from causalbase.order import OrderScorer, flop, order_search, pair_polish
 from causalbase.order.polished import PolishedILS
-from causalbase.scores import BGeScore, BICScore, FamilyScore, GaussianBICScore, make_score
+from causalbase.scores import (
+    BDeuScore,
+    BGeScore,
+    BICScore,
+    FamilyScore,
+    GaussianBICScore,
+    make_score,
+)
 from causalbase.search import ges, hill_climbing
 
 SCORES: dict[str, Callable[[int, int, int], FamilyScore]] = {
@@ -78,17 +86,18 @@ def test_superset_bounds_keep_the_same_candidates(name):
     """Pruning skips only sets that no subset-dominance check would keep."""
     skipped = 0
     for seed in range(3):
-        score = SCORES[name](7, 300, seed)
-        for v in range(7):
+        # Twelve variables, so that the walk goes deeper than the chunks it is split into.
+        score = SCORES[name](12, 300, seed)
+        for v in range(12):
             full, n_full = parent_set_scores(score, v, prune=False)
             pruned, n_pruned = parent_set_scores(score, v, prune=True)
-            assert n_full == 1 << 6 and n_pruned <= n_full
-            (a, sa), (b, sb) = prune_candidates(full, 6), prune_candidates(pruned, 6)
+            assert n_full == 1 << 11 and n_pruned <= n_full
+            (a, sa), (b, sb) = prune_candidates(full, 11), prune_candidates(pruned, 11)
             assert np.array_equal(a, b)
             np.testing.assert_allclose(sa, sb, rtol=1e-12)
             skipped += n_full - n_pruned
-    if name == "bic":
-        assert skipped > 0  # the bound of de Campos and Ji does prune
+    if name != "bge":
+        assert skipped > 0  # the bounds do prune; BGe has none
 
 
 @pytest.mark.parametrize("name", SCORES)
@@ -182,7 +191,7 @@ def test_the_estimators_run_the_functions_on_every_criterion():
                 order_search(score, max_iter=3, random_state=2).dag,
             ),
             (ExactSearch(criterion), exact_search(score).dag),
-            (GES(criterion), ges(score).to_dag()),
+            (GES(criterion), ges(score).dag),
         ]
         for model, dag in cases:
             model.fit(data)
@@ -200,3 +209,29 @@ def test_criteria_other_than_bdeu_refuse_bdeu_only_settings():
         ):
             with pytest.raises(ValueError):
                 _fast(cls, "bdeu").set_params(**bad).fit(data)
+
+
+@pytest.mark.parametrize("name", SCORES)
+def test_threads_do_not_change_what_the_exact_search_finds(name):
+    serial = SCORES[name](9, 300, 6)
+    threaded = type(serial)(serial.data, n_jobs=-1)
+    a, b = exact_search(serial), exact_search(threaded)
+    assert a.dag == b.dag
+    assert a.score == pytest.approx(b.score, rel=1e-12)
+
+
+@pytest.mark.parametrize("make", [GaussianBICScore, BGeScore])
+def test_collinear_columns_leave_the_gaussian_exact_search_exact(make):
+    data = random_gaussian(4, 200, 8)
+    values = np.column_stack([data.values, data.values[:, 0] - 2 * data.values[:, 2]])
+    score = make(ContinuousDataset(values, [*data.names, "sum"]))
+    result = exact_search(score)
+    assert result.score == pytest.approx(best_dag_score(score), rel=1e-9)
+    assert score.score_dag(result.dag) == pytest.approx(result.score, rel=1e-9)
+
+
+def test_discrete_data_too_large_for_the_counting_kernels_still_gets_the_optimum():
+    data = random_discrete(4, 2**15 + 5, 9)  # counts no longer fit in int16
+    for score in (BDeuScore(data), BICScore(data)):
+        result = exact_search(score)
+        assert result.score == pytest.approx(best_dag_score(score), rel=1e-9)

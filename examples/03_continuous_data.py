@@ -2,10 +2,10 @@
 Learn from continuous data
 ==========================
 
-With ``criterion="gaussian_bic"``, :class:`~causalbase.search.GES` and
-:class:`~causalbase.search.XGES` score a linear Gaussian model of each node
-given its parents. The data below come from a known linear model, so the
-answer can be checked.
+With ``criterion="gaussian_bic"`` or ``criterion="bge"``, every estimator
+scores a linear Gaussian model of each node given its parents; here
+:class:`~causalbase.search.GES` and :class:`~causalbase.search.XGES` do. The
+data below come from a known linear model, so the answer can be checked.
 """
 
 import numpy as np

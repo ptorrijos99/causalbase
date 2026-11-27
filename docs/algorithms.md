@@ -2,7 +2,9 @@
 
 What each estimator does, what its options change, and how it is made fast. The measurements behind the defaults are in [Benchmarks](benchmarks.md).
 
-GES and XGES search the space of Markov equivalence classes and return a CPDAG. The other four search over variable orders or over DAGs and return one DAG; `cpdag_` is then the class of that DAG. Every estimator takes every score, named by `criterion`.
+GES and XGES search the space of Markov equivalence classes and return a CPDAG. The other four search over variable orders or over DAGs and return one DAG; `cpdag_` is then the class of that DAG.
+
+All six share one interface. Each takes the parameters of its score first (`criterion`, `ess`, `expected_parents`, `prior`, `penalty_discount`, `alpha_w`), its own next and `n_jobs` last; learns with `fit(X, initial_graph=None)`; and keeps `dag_`, `cpdag_`, `score_`, `n_iter_`, `trace_` and `adjacency_`. Behind each there is a function of its subpackage that takes a score object and returns a `SearchResult`, with the network (`dag` and its class, `cpdag`), its `score`, `n_iter`, a `trace` of the best score over time and what else the search reports in `info`.
 
 ## Scores and structure priors
 
@@ -13,9 +15,9 @@ All the searches maximise a decomposable score, a sum of one term per node that 
 | `"bdeu"` | `BDeuScore` | Categorical | `ess`, the equivalent sample size; `prior` |
 | `"bic"` | `BICScore` | Categorical | `penalty_discount` |
 | `"gaussian_bic"` | `GaussianBICScore` | Continuous | `penalty_discount` |
-| `"bge"` | `BGeScore` | Continuous | `ess` as `alpha_mu`, the equivalent sample size of the prior on the mean |
+| `"bge"` | `BGeScore` | Continuous | `ess` as `alpha_mu`, the equivalent sample size of the prior on the mean; `alpha_w` |
 
-BGe has a second parameter, the degrees of freedom `alpha_w` of the Wishart prior on the precision matrix, `n_vars + 2` by default as in bnlearn; the estimators keep the default, and `BGeScore(data, alpha_w=...)` passed to a search function changes it. The prior mean is the vector of sample means and the prior scale `t I` with `t = alpha_mu (alpha_w - n_vars - 1) / (alpha_mu + 1)`, which does not rescale with the data, so standardised columns give every variable the same prior.
+BGe's `alpha_w` is the degrees of freedom of the Wishart prior on the precision matrix, `n_vars + 2` by default as in bnlearn. The prior mean is the vector of sample means and the prior scale `t I` with `t = alpha_mu (alpha_w - n_vars - 1) / (alpha_mu + 1)`, which does not rescale with the data, so standardised columns give every variable the same prior.
 
 A structure prior is added to each family. The default Bernoulli prior makes each of the `n_vars - 1` other variables a parent with probability `expected_parents / (n_vars - 1)`, so a family with `k` parents gains `k log(p / (1 - p))`. `prior="tetrad"` is the prior of Tetrad 7.6.5's BDeu, `k log p + (m - k) log(1 - p)` with `m = n_rows - 1`, which counts rows instead of variables and keeps the constant, so `score_` is the value Tetrad reports for the same network. With `expected_parents=None` the prior is uniform and the score is plain BDeu, BIC or BGe. The Bernoulli prior depends only on the number of edges, so BDeu and BGe stay score equivalent with it; Tetrad's prior is for BDeu only.
 
@@ -29,7 +31,7 @@ score.score_dag(dag)
 
 The score objects cache the families they compute, so one object should serve a whole search; they are not safe to share between threads.
 
-BDeu runs on a compiled engine in the order searches, hill climbing, FLOP and the exact search. The other scores reach those searches through the same two methods, `local_score` and `local_scores_add` (the families of a node with one parent more, in one batch), which every `FamilyScore` has, so a score of one's own works with all of them too.
+All four scores run on compiled kernels: BDeu has an engine of its own for the order searches, hill climbing, FLOP and the exact search, the discrete BIC counts with the same kernels as BDeu, and the two Gaussian scores factor the parents' block of their matrix with a Cholesky decomposition that drops a parent the others already determine, so collinear data do not break them. A search reaches its score through two methods, `local_score` and `local_scores_add` (the families of a node with one parent more, in one batch), which every `FamilyScore` has, so a score of one's own works with every search too. `n_jobs`, in every score and estimator, is the number of threads of those kernels (-1 for every thread numba has), and no result depends on it.
 
 ## GES
 
@@ -42,11 +44,13 @@ GES(
     expected_parents=1.0,
     prior="bernoulli",
     penalty_discount=1.0,
+    alpha_w=None,
     max_parents=None,
     max_t_size=None,
     required=None,
     forbidden=None,
     one_edge_faithfulness=False,
+    n_jobs=1,
 )
 ```
 
@@ -57,9 +61,11 @@ GES(
 | `expected_parents` | `1.0` | Structure prior, added to any criterion: each of the `m = n_vars - 1` possible parents of a node is present with probability `expected_parents / m`, capped at one half. `None` is the uniform prior, the plain score. |
 | `prior` | `"bernoulli"` | Which structure prior. `"tetrad"`, for BDeu only, is Tetrad 7.6.5's, `k log p + (m - k) log(1 - p)` with `p = expected_parents / m` and `m = n_rows - 1`: the same Bernoulli prior with the number of rows in place of the number of variables, so `score_` is Tetrad's value. GES searches it through the Bernoulli BDeu with that `p`, which ranks the families of a node the same way. |
 | `penalty_discount` | `1.0` | Multiplier of the penalty of the two BIC scores, `log(n) / 2` per free parameter. |
+| `alpha_w` | `None` | Degrees of freedom of BGe's Wishart prior; `None` is `n_vars + 2`. |
 | `max_parents` | `None` | Most parents an Insert may give a node. |
 | `max_t_size` | `None` | Largest set of neighbours an Insert orients into its head. `None` tries every set that can be valid, as Chickering defines the operator. |
 | `one_edge_faithfulness` | `False` | Join two variables only if the score finds them dependent on their own, as fGES does (Ramsey et al., 2017). |
+| `n_jobs` | `1` | Threads of the score's compiled kernels, -1 for all; the result does not depend on it. |
 
 **The structure prior.** Over twelve networks from 5 to 223 variables, three samples each, one expected parent lowers the summed SHD against the true networks from 659 to 523. The gain grows with the network: `win95pts` drops from 80 to 40, `andes` from 104 to 60. Below about 30 variables the two priors give the same structures.
 
@@ -67,7 +73,7 @@ GES(
 
 **One-edge faithfulness.** fGES speeds GES up by never joining two variables that the score finds independent on their own, a check made once, before the search. On continuous data from sparse graphs this pays: over 1000 variables with one edge per variable on average it is five times faster and closer to the truth. On the discrete benchmark networks it saves no time and loses edges whose dependence only shows given other parents (`link` goes from an SHD of 679 to 816), so it is off by default.
 
-`fit(X, initial_graph=dag)` starts the search from a DAG instead of the empty graph.
+`fit(X, initial_graph=dag)` starts the search from a DAG, or from the class of a PDAG, instead of the empty graph; every estimator takes it, the order searches as the first order.
 
 **Model selection.** `score(X)` is the mean log likelihood per row of held-out data under the learned DAG, its parameters learned from the training rows: the Bayesian predictive likelihood with a BDeu prior of equivalent sample size `ess` on categorical data, which is the same for every DAG of the equivalence class, and the maximum-likelihood linear Gaussian model on continuous data. scikit-learn's parameter searches use it, so `GridSearchCV(GES(), {"expected_parents": [0.5, 1, 2]}).fit(frame)` picks the prior on held-out rows. `causalbase.scores.log_likelihood(dag, train, test)` is the same number for any DAG.
 
@@ -75,7 +81,7 @@ GES(
 
 ### How it is made fast
 
-* **Scoring.** BDeu and BIC are computed by compiled kernels. The families an Insert compares share their parents, so the rows are grouped once by the configuration of those parents, labelled densely in order of first occurrence so that any number of parents is exact, and each candidate parent is then counted without sorting: with bitsets when the table is small, in one pass over the rows otherwise, the candidates in parallel. The score is summed over the distinct cell counts, so `log Gamma` is evaluated once per count value, and a family scores the same, bit for bit, whether it is counted in a batch or alone. Families are cached.
+* **Scoring.** BDeu and BIC are computed by compiled kernels. The families an Insert compares share their parents, so the rows are grouped once by the configuration of those parents, labelled densely in order of first occurrence so that any number of parents is exact, and each candidate parent is then counted without sorting: with bitsets when the table is small, in one pass over the rows otherwise, the candidates in parallel. The score is summed over the distinct cell counts, so `log Gamma` is evaluated once per count value, and a family scores the same, bit for bit, whether it is counted in a batch or alone. The Gaussian scores factor the shared parents once and score each candidate from the factor, with two inner products. Families are cached.
 * **Evaluating operators.** Operators are evaluated a child at a time. Every candidate parent with the same neighbours in common with the child shares its candidate subsets, so one traversal of the graph decides the path condition for all of them. The subsets are grown as cliques, so the ones that cannot be valid are never visited, and a restriction to candidate pairs (the screen of `one_edge_faithfulness`, say) removes the other parents before anything is counted.
 * **Re-scoring.** After a step only the children whose neighbourhood changed, or one of whose undirected neighbours did, are re-scored. Validity also depends on paths elsewhere in the graph, so the best operator is re-checked before it is applied, and when nothing improves every child is re-scored once more before the phase stops. Each phase therefore ends where no operator of its own kind improves the score: no Insert after the forward phase, no Delete after the backward one. An Insert may improve again once the backward phase has removed edges; XGES, below, is the search that ends where no operator of any kind does.
 * **Completion.** After each step the graph is completed to its CPDAG with a compiled Dor-Tarsi extension and Chickering's (1995) edge labelling, both over neighbour and parent lists, and only the pairs whose marks changed are written back.
@@ -91,12 +97,14 @@ XGES(
     expected_parents=1.0,
     prior="bernoulli",
     penalty_discount=1.0,
+    alpha_w=None,
     max_parents=None,
     max_t_size=None,
     required=None,
     forbidden=None,
     one_edge_faithfulness=False,
     extended=True,
+    n_jobs=1,
 )
 ```
 
@@ -117,12 +125,13 @@ OrderSearch(
     expected_parents=1.0,
     prior="bernoulli",
     penalty_discount=1.0,
+    alpha_w=None,
     n_restarts=2,
     polish="ges",
     n_pair_candidates=0,
     init="ges",
-    time_limit=60.0,
     max_iter=None,
+    time_limit=60.0,
     random_state=None,
     n_jobs=1,
 )
@@ -147,6 +156,7 @@ FLOP(
     expected_parents=1.0,
     prior="bernoulli",
     penalty_discount=1.0,
+    alpha_w=None,
     init="ges",
     max_iter=None,
     time_limit=60.0,
@@ -168,6 +178,7 @@ HillClimbing(
     expected_parents=1.0,
     prior="bernoulli",
     penalty_discount=1.0,
+    alpha_w=None,
     tabu_length=0,
     max_tabu_moves=0,
     n_restarts=0,
@@ -198,14 +209,15 @@ ExactSearch(
     expected_parents=1.0,
     prior="bernoulli",
     penalty_discount=1.0,
+    alpha_w=None,
     max_parents=None,
     time_limit=None,
     n_jobs=1,
 )
 ```
 
-Time and memory grow as `p 2^p`. With BDeu, the parent sets are scored by compiled kernels: the 20 variables of `child` take about eight minutes on one thread, most of it scoring parent sets, which `n_jobs` spreads over threads, and 27 variables need about 6 GB of memory. The data must then have fewer than 32768 rows and at most 255 levels per variable.
+Time and memory grow as `p 2^p`, and compiled kernels walk the parent sets of every score on `n_jobs` threads. For BDeu and the discrete BIC they count the rows of each set: the 20 variables of `child` take about eight minutes on one thread, most of it scoring parent sets, and 27 variables need about 6 GB of memory. The counts are 16-bit, so data of 32768 rows or more, or with more than 255 levels, goes through the score's own batches instead, more slowly. The Gaussian scores move from a set to its extension by one elimination step on their matrix, which costs about a tenth of a microsecond per set: 20 variables take a second or two. A score of one's own is walked in Python, one batch of extensions per set.
 
-The other scores are walked over the same parent sets in Python, one batch of extensions per set, at some 20 to 50 microseconds a set: a few minutes for 20 variables when nothing is pruned, and more than an hour for 24. Each prunes with a bound of its own. On BDeu, every factor of the marginal likelihood written as a Polya urn is at most 1, which bounds a superset by its number of non-empty cells. On the discrete BIC, the log likelihood is at most 0, so the penalty of one more parent alone bounds every superset (de Campos and Ji, 2011). On the Gaussian BIC, no family of a node is more likely than the one with every other variable as a parent, so that likelihood, less the penalty, bounds them. BGe has no bound here, since its marginal likelihood carries no penalty term to compare with, so every parent set is scored; the result is still the optimum.
+Each score prunes with a bound of its own. On BDeu, every factor of the marginal likelihood written as a Polya urn is at most 1, which bounds a superset by its number of non-empty cells. On the discrete BIC, the log likelihood is at most 0, so the penalty of one more parent alone bounds every superset (de Campos and Ji, 2011). On the Gaussian BIC, no family of a node is more likely than the one with every other variable as a parent, so that likelihood, less the penalty, bounds them. BGe has no bound here, since its marginal likelihood carries no penalty term to compare with, so every parent set is scored; the result is still the optimum.
 
 With `max_parents`, the search is an integer program in the style of GOBNILP (Cussens, 2011; Bartlett and Cussens, 2017), solved with SCIP through PySCIPOpt (`pip install "causalbase[exact]"`): one binary variable per candidate parent set of at most `max_parents` variables, exactly one chosen per node, and acyclicity imposed by cluster constraints, added when a solution violates them. SCIP starts from the best network consistent with the order GES learns. The result is optimal among the DAGs whose families have at most `max_parents` parents, and the global optimum only if no larger family would have been a candidate, which is not checked. Parent sets are 64-bit masks, so this search takes at most 64 variables. With `time_limit` it returns the best network SCIP found in time, and the function behind it, `causalbase.exact.exact_search`, says in `info["status"]` whether it was proved optimal.

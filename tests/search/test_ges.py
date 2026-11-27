@@ -69,7 +69,7 @@ def test_the_estimator_starts_from_a_given_dag() -> None:
 def test_only_candidate_pairs_gain_edges() -> None:
     data = load_asia().data
     allowed = frozenset({(0, 1), (1, 0), (2, 3), (3, 2)})
-    cpdag = ges(BDeuScore(data), candidates=allowed)
+    cpdag = ges(BDeuScore(data), candidates=allowed).cpdag
     edges = cpdag.directed_edges() + cpdag.undirected_edges()
     assert {frozenset(e) for e in edges} <= {frozenset(p) for p in allowed}
 
@@ -77,7 +77,7 @@ def test_only_candidate_pairs_gain_edges() -> None:
 def test_the_searches_take_the_number_of_variables_from_the_score() -> None:
     data = load_asia().data
     score = BDeuScore(data)
-    assert ges(score).num_nodes == xges(score).num_nodes == data.n_vars
+    assert ges(score).dag.num_nodes == xges(score).dag.num_nodes == data.n_vars
     with pytest.raises(ValueError, match="nodes"):
         ges(score, DAG(3))
 
@@ -88,8 +88,8 @@ def test_the_searches_take_tetrads_score_through_its_view() -> None:
     data = load_asia().data
     score = BDeuScore(data, prior="tetrad")
     for search in (ges, xges):
-        assert search(score) == search(score._search_view())
-        assert search(score).num_nodes == score.n_vars
+        assert search(score).cpdag == search(score._search_view()).cpdag
+        assert search(score).dag.num_nodes == score.n_vars
 
 
 def test_the_estimator_takes_frames_and_arrays_and_names_its_result() -> None:
@@ -236,16 +236,16 @@ def _improving(score: FamilyScore, cpdag: PDAG, kinds: str) -> list[tuple[str, i
 
 def test_every_search_stops_at_a_local_optimum_and_never_below_its_start() -> None:
     for score, truth in _problems(30):
-        assert _improving(score, ges(score, backward=False), "I") == []
-        assert _improving(score, ges(score), "D") == []
-        xges0, full = xges(score, extended=False), xges(score)
+        assert _improving(score, ges(score, backward=False).cpdag, "I") == []
+        assert _improving(score, ges(score).cpdag, "D") == []
+        xges0, full = xges(score, extended=False).cpdag, xges(score).cpdag
         assert _improving(score, xges0, "IDR") == []
         assert _improving(score, full, "IDR") == []
         assert _value(score, full) >= _value(score, xges0) - 1e-6
         for extended in (False, True):
-            from_truth = xges(score, truth, extended=extended)
+            from_truth = xges(score, truth, extended=extended).cpdag
             assert _value(score, from_truth) >= _value(score, truth) - 1e-6
-        assert _value(score, ges(score, truth)) >= _value(score, truth) - 1e-6
+        assert _value(score, ges(score, truth).cpdag) >= _value(score, truth) - 1e-6
 
 
 def test_every_search_keeps_to_knowledge_the_parent_cap_and_the_screen() -> None:
@@ -258,9 +258,9 @@ def test_every_search_keeps_to_knowledge_the_parent_cap_and_the_screen() -> None
         for extended in (None, False, True):
             options = dict(knowledge=knowledge, max_parents=2, one_edge_faithfulness=True)
             if extended is None:
-                cpdag = ges(score, **options)  # type: ignore[arg-type]
+                cpdag = ges(score, **options).cpdag  # type: ignore[arg-type]
             else:
-                cpdag = xges(score, extended=extended, **options)  # type: ignore[arg-type]
+                cpdag = xges(score, extended=extended, **options).cpdag  # type: ignore[arg-type]
             dag = cpdag.to_dag()
             skeleton = {frozenset(e) for e in dag.edges()}
             assert required in skeleton and forbidden not in skeleton

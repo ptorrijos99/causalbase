@@ -36,7 +36,7 @@ def test_order_search_can_start_from_xges(alarm_small):
         prior="tetrad", init="xges", max_iter=2, time_limit=None, random_state=1
     ).fit(alarm_small)
     score = BDeuScore(alarm_small, prior="tetrad")
-    start = list(xges(score).to_dag().topological_order())
+    start = list(xges(score).dag.topological_order())
     expected = order_search(score, start, max_iter=2, random_state=1)
     assert sorted(model.dag_.edges()) == sorted(expected.dag.edges())
 
@@ -104,7 +104,7 @@ def test_the_scores_share_one_interface(alarm_small):
         BDeuScore(alarm_small, ess=5.0, prior="tetrad"),
         TetradBDeuReference(alarm_small, ess=5.0),
     )
-    dag = ges(fast).to_dag()
+    dag = ges(fast).dag
     assert fast.n_vars == tetrad.n_vars == alarm_small.n_vars
     assert fast.data is alarm_small and tetrad.data is alarm_small
     assert fast.ess == tetrad.ess == 5.0
