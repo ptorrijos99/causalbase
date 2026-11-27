@@ -1,4 +1,4 @@
-"""FLOP (Wienöbst, Henckel and Weichwald, ICLR 2026) ported to discrete data and BDeu (a baseline).
+"""FLOP (Wienöbst, Henckel and Weichwald, ICLR 2026) ported to every score here (a baseline).
 
 Follows ``flopsearch`` (v0.3.0): for each node, a non-greedy grow-shrink (accept
 any parent that improves, candidates in shuffled order, then remove any that
@@ -8,8 +8,9 @@ removed node that was not a parent changes nothing); reinsertion of every
 variable at its best position, visiting the variables in their current order;
 and iterated local search from the best order with ``round(ln p)`` random swaps,
 each restart rebuilding the parent sets from scratch and accepted only when
-strictly better. The local score is a :class:`~causalbase.scores.BDeuScore`,
-scored with its compiled engine, with a per-node cache, so only the evaluator differs from
+strictly better. The local score is any :class:`~causalbase.scores.FamilyScore` (a
+:class:`~causalbase.scores.BDeuScore` is scored with its compiled engine), with a per-node
+cache, so only the evaluator differs from
 :class:`~causalbase.order.ils.IteratedLocalSearch`.
 """
 
@@ -19,13 +20,16 @@ import math
 import random
 import time
 from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 from causalbase._validation import check_count, check_time_limit, resolve_seed
 from causalbase.graph import DAG
 from causalbase.order.polished import start_order
-from causalbase.scores._compiled import CompiledBDeu, engine_of
-from causalbase.scores.bdeu import BDeuScore
+from causalbase.scores._compiled import engine_of
 from causalbase.search import SearchResult
+
+if TYPE_CHECKING:
+    from causalbase.scores import FamilyScore
 
 __all__ = ["flop"]
 
@@ -42,7 +46,7 @@ def _bits(mask: int) -> list[int]:
 
 
 class _Evaluator:
-    def __init__(self, fast: CompiledBDeu, n: int, seed: int) -> None:
+    def __init__(self, fast: Any, n: int, seed: int) -> None:
         self.fast = fast
         self.rng = random.Random(seed)
         self.cache: list[dict[int, float]] = [{} for _ in range(n)]
@@ -172,7 +176,7 @@ def _local_search(
 
 
 def flop(
-    score: BDeuScore,
+    score: FamilyScore,
     initial_order: Sequence[int] | None = None,
     *,
     max_iter: int | None = None,
@@ -187,9 +191,9 @@ def flop(
 
     Parameters
     ----------
-    score : BDeuScore
-        The score, with either prior; the search scores with its compiled
-        engine.
+    score : FamilyScore
+        The score: BDeu with either prior (scored with its compiled engine),
+        BIC, Gaussian BIC or BGe, or a score of one's own.
     initial_order : sequence of int, optional
         Order the first local search starts from. By default a topological
         order of the network GES learns on the same score, learned before the

@@ -1,6 +1,6 @@
 """Hill climbing in the space of DAGs (add, delete or reverse one arc).
 
-The search runs on a :class:`~causalbase.scores.BDeuScore`. It is the
+The search runs on any :class:`~causalbase.scores.FamilyScore`. It is the
 classic score-based search, as in bnlearn's ``hc`` and ``tabu``: from a
 start DAG (empty by default), apply the valid move with the largest gain until
 none improves. ``D[u, v]`` holds the gain of toggling the arc ``u -> v`` (adding
@@ -33,15 +33,17 @@ import math
 import random
 import time
 from collections import deque
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from causalbase._validation import check_count, check_time_limit, resolve_seed
 from causalbase.graph import DAG
-from causalbase.scores._compiled import HAVE_NUMBA, CompiledBDeu, engine_of
-from causalbase.scores.bdeu import BDeuScore
+from causalbase.scores._compiled import HAVE_NUMBA, engine_of
 from causalbase.search._result import SearchResult
+
+if TYPE_CHECKING:
+    from causalbase.scores import FamilyScore
 
 __all__ = ["hill_climbing"]
 
@@ -83,7 +85,7 @@ if HAVE_NUMBA:
 
 
 class _State:
-    def __init__(self, fast: CompiledBDeu, n: int, parents: list[set[int]]) -> None:
+    def __init__(self, fast: Any, n: int, parents: list[set[int]]) -> None:
         self.fast, self.n = fast, n
         self.parents = parents
         self.children: list[set[int]] = [set() for _ in range(n)]
@@ -290,7 +292,7 @@ class _State:
 
 
 def hill_climbing(
-    score: BDeuScore,
+    score: FamilyScore,
     initial_graph: DAG | None = None,
     *,
     tabu_length: int = 0,
@@ -308,9 +310,9 @@ def hill_climbing(
 
     Parameters
     ----------
-    score : BDeuScore
-        The score to climb, with either prior; the search scores with its
-        compiled engine.
+    score : FamilyScore
+        The score to climb: BDeu with either prior (scored with its compiled
+        engine), BIC, Gaussian BIC or BGe, or a score of one's own.
     initial_graph : DAG, optional
         Where the first climb starts. The empty graph by default.
     tabu_length : int, default=0

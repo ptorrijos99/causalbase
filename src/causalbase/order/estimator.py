@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from causalbase._bdeu_estimator import BDeuEstimator, Init, initial_order
+from causalbase._score_estimator import Init, ScoreEstimator, initial_order
 from causalbase._validation import check_count, check_time_limit
 from causalbase.order.flop import flop
 from causalbase.order.polished import Polish, order_search
 
 if TYPE_CHECKING:
-    from causalbase.scores.bdeu import BDeuScore, Prior
+    from causalbase.scores import FamilyScore, Prior, ScoreName
     from causalbase.search import SearchResult
 
 __all__ = ["FLOP", "OrderSearch"]
@@ -25,11 +25,11 @@ def _check_order_search(init: object, max_iter: object, time_limit: object) -> N
         raise ValueError("set time_limit, max_iter or both, or the search never ends")
 
 
-class OrderSearch(BDeuEstimator):
+class OrderSearch(ScoreEstimator):
     """Learn a Bayesian network by iterated local search over variable orders.
 
-    The search is :func:`~causalbase.order.order_search` on
-    :class:`~causalbase.scores.BDeuScore`: it starts from a topological order
+    The search is :func:`~causalbase.order.order_search` on the score
+    `criterion` names: it starts from a topological order
     of the network GES (or XGES) learns, climbs over orders by insertion
     moves, scores each order by the best network consistent with it (a
     greedy climb per node, restarted `n_restarts` times), and ends each local
@@ -38,15 +38,23 @@ class OrderSearch(BDeuEstimator):
 
     Parameters
     ----------
+    criterion : {"bdeu", "bic", "gaussian_bic", "bge"}, default="bdeu"
+        The score: BDeu or BIC over categorical data, or the BIC or BGe of a
+        linear Gaussian model over continuous data.
     ess : float, default=1.0
-        Equivalent sample size of the BDeu prior.
+        Equivalent sample size of the BDeu prior, or of BGe's prior on the
+        mean. Also the prior of the parameters behind :meth:`score` on
+        categorical data.
     expected_parents : float or None, default=1.0
         The parameter of the structure prior, as in
         :class:`~causalbase.scores.BDeuScore`; None leaves the prior out.
     prior : {"bernoulli", "tetrad"}, default="bernoulli"
         The structure prior: the Bernoulli prior of
-        :class:`~causalbase.scores.FamilyScore`, or Tetrad 7.6.5's, with
-        `expected_parents` as Tetrad's structure prior.
+        :class:`~causalbase.scores.FamilyScore`, or, for BDeu only, Tetrad
+        7.6.5's, with `expected_parents` as Tetrad's structure prior.
+    penalty_discount : float, default=1.0
+        Multiplier of the penalty of the two BIC scores; larger values give
+        sparser structures.
     n_restarts : int, default=2
         Extra greedy climbs per node, each without the first parent the
         previous climb chose (see :class:`~causalbase.order.OrderScorer`).
@@ -67,8 +75,8 @@ class OrderSearch(BDeuEstimator):
         Seeds every random choice; None draws a fresh seed. With an integer the
         result is reproducible for a fixed `max_iter` and no time limit.
     n_jobs : int, default=1
-        Threads that score large batches of candidate parents; the result does
-        not depend on it.
+        Threads of the compiled BDeu engine for large batches of candidate
+        parents; the result does not depend on it.
 
     Attributes
     ----------
@@ -77,7 +85,7 @@ class OrderSearch(BDeuEstimator):
     cpdag_ : PDAG
         Its equivalence class.
     score_ : float
-        The :class:`~causalbase.scores.BDeuScore` of `dag_`, with the prior chosen.
+        The score of `dag_` under `criterion`, with the prior chosen.
     n_iter_ : int
         Kicks performed.
     trace_ : list of tuple
@@ -102,9 +110,11 @@ class OrderSearch(BDeuEstimator):
 
     def __init__(
         self,
+        criterion: ScoreName = "bdeu",
         ess: float = 1.0,
         expected_parents: float | None = 1.0,
         prior: Prior = "bernoulli",
+        penalty_discount: float = 1.0,
         n_restarts: int = 2,
         polish: Polish = "ges",
         n_pair_candidates: int = 0,
@@ -114,9 +124,11 @@ class OrderSearch(BDeuEstimator):
         random_state: int | None = None,
         n_jobs: int = 1,
     ) -> None:
+        self.criterion = criterion
         self.ess = ess
         self.expected_parents = expected_parents
         self.prior = prior
+        self.penalty_discount = penalty_discount
         self.n_restarts = n_restarts
         self.polish = polish
         self.n_pair_candidates = n_pair_candidates
@@ -134,7 +146,7 @@ class OrderSearch(BDeuEstimator):
         check_count("n_pair_candidates", self.n_pair_candidates)
         _check_order_search(self.init, self.max_iter, self.time_limit)
 
-    def _search(self, score: BDeuScore) -> SearchResult:
+    def _search(self, score: FamilyScore) -> SearchResult:
         return order_search(
             score,
             initial_order(score, self.init),
@@ -147,25 +159,33 @@ class OrderSearch(BDeuEstimator):
         )
 
 
-class FLOP(BDeuEstimator):
+class FLOP(ScoreEstimator):
     """Learn a Bayesian network with FLOP (Wienöbst, Henckel and Weichwald, 2026).
 
-    The search is :func:`~causalbase.order.flop` on
-    :class:`~causalbase.scores.BDeuScore`: a local search over orders with
+    The search is :func:`~causalbase.order.flop` on the score `criterion`
+    names: a local search over orders with
     FLOP's grow-shrink evaluator and reinsertion moves, from a topological
     order of the network GES (or XGES) learns, then an iterated local search with random swaps.
 
     Parameters
     ----------
+    criterion : {"bdeu", "bic", "gaussian_bic", "bge"}, default="bdeu"
+        The score: BDeu or BIC over categorical data, or the BIC or BGe of a
+        linear Gaussian model over continuous data.
     ess : float, default=1.0
-        Equivalent sample size of the BDeu prior.
+        Equivalent sample size of the BDeu prior, or of BGe's prior on the
+        mean. Also the prior of the parameters behind :meth:`score` on
+        categorical data.
     expected_parents : float or None, default=1.0
         The parameter of the structure prior, as in
         :class:`~causalbase.scores.BDeuScore`; None leaves the prior out.
     prior : {"bernoulli", "tetrad"}, default="bernoulli"
         The structure prior: the Bernoulli prior of
-        :class:`~causalbase.scores.FamilyScore`, or Tetrad 7.6.5's, with
-        `expected_parents` as Tetrad's structure prior.
+        :class:`~causalbase.scores.FamilyScore`, or, for BDeu only, Tetrad
+        7.6.5's, with `expected_parents` as Tetrad's structure prior.
+    penalty_discount : float, default=1.0
+        Multiplier of the penalty of the two BIC scores; larger values give
+        sparser structures.
     init : {"ges", "xges"}, default="ges"
         Algorithm whose network gives the first order.
     max_iter : int or None, default=None
@@ -176,8 +196,8 @@ class FLOP(BDeuEstimator):
     random_state : int or None, default=None
         Seeds every random choice; None draws a fresh seed.
     n_jobs : int, default=1
-        Threads that score large batches of candidate parents; the result does
-        not depend on it.
+        Threads of the compiled BDeu engine for large batches of candidate
+        parents; the result does not depend on it.
 
     Attributes
     ----------
@@ -200,18 +220,22 @@ class FLOP(BDeuEstimator):
 
     def __init__(
         self,
+        criterion: ScoreName = "bdeu",
         ess: float = 1.0,
         expected_parents: float | None = 1.0,
         prior: Prior = "bernoulli",
+        penalty_discount: float = 1.0,
         init: Init = "ges",
         max_iter: int | None = None,
         time_limit: float | None = 60.0,
         random_state: int | None = None,
         n_jobs: int = 1,
     ) -> None:
+        self.criterion = criterion
         self.ess = ess
         self.expected_parents = expected_parents
         self.prior = prior
+        self.penalty_discount = penalty_discount
         self.init = init
         self.max_iter = max_iter
         self.time_limit = time_limit
@@ -222,7 +246,7 @@ class FLOP(BDeuEstimator):
         super()._check()
         _check_order_search(self.init, self.max_iter, self.time_limit)
 
-    def _search(self, score: BDeuScore) -> SearchResult:
+    def _search(self, score: FamilyScore) -> SearchResult:
         return flop(
             score,
             initial_order(score, self.init),

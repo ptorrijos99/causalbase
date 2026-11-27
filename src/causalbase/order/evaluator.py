@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple, Protocol
 import numpy as np
 
 if TYPE_CHECKING:
-    from causalbase.scores import BDeuScore
+    from causalbase.scores import FamilyScore
 
 __all__ = ["OrderResult", "OrderScorer"]
 
@@ -77,15 +77,16 @@ class OrderScorer:
     """Hill climbing restricted to an order, with exact incremental replay.
 
     Parent sets are bitmasks internally, and local scores are cached here per
-    node and parent mask, so each family is scored once, by the compiled
-    engine of the :class:`~causalbase.scores.BDeuScore` (which does not cache
-    them).
+    node and parent mask, so each family is scored once: by the compiled
+    engine of a :class:`~causalbase.scores.BDeuScore` (which does not cache
+    them), by the score itself otherwise.
 
     Parameters
     ----------
-    score : BDeuScore
-        The score, kept as ``family_score``; its compiled engine scores the
-        families. Any other object with ``n_vars`` and
+    score : FamilyScore
+        The score, kept as ``family_score``; a
+        :class:`~causalbase.scores.BDeuScore` scores the families with its
+        compiled engine. Any other object with ``n_vars`` and
         ``local_score(node, parents)`` (and, optionally, the batch
         ``local_scores_add(node, parents, candidates)``) is used as it is.
     max_steps : int, default=1000
@@ -114,7 +115,7 @@ class OrderScorer:
 
     def __init__(
         self,
-        score: BDeuScore | Any,
+        score: FamilyScore | Any,
         max_steps: int = 1000,
         incremental: bool = True,
         memo_slots: int = 8,

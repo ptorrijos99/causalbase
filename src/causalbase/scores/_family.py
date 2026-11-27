@@ -23,8 +23,9 @@ class FamilyScore:
     The base for a new score: a subclass implements :meth:`compute_family`,
     the score of one family, and may override :meth:`compute_extensions`, the
     families an Insert compares, with a faster batch. :meth:`local_score` and
-    :meth:`local_scores_with`, which the search calls, cache both and add a
-    structure prior on the number of parents ``k``::
+    :meth:`local_scores_with` (also callable as :meth:`local_scores_add`),
+    which the searches call, cache both and add a structure prior on the
+    number of parents ``k``::
 
         k * log(p) + (m - k) * log(1 - p),    p = min(expected_parents / m, 1/2)
 
@@ -156,9 +157,47 @@ class FamilyScore:
             scores = row[extra_array]
         return scores
 
+    def local_scores_add(
+        self, node: int, parents: Collection[int], candidates: Sequence[int] | npt.NDArray[np.intp]
+    ) -> npt.NDArray[np.float64]:
+        """Return the local score of `node` given `parents` plus each one of `candidates`.
+
+        :meth:`local_scores_with` under the name the order searches, hill
+        climbing and FLOP call, so that every score works with them.
+        """
+        return self.local_scores_with(node, frozenset(parents), candidates)
+
     def score_dag(self, dag: DAG) -> float:
         """Return the score of `dag`: the sum of its families' local scores."""
         return sum(self.local_score(v, dag.parents(v)) for v in range(dag.num_nodes))
+
+    def _extensions_uncached(
+        self, node: int, parents: npt.NDArray[np.int64], extra: npt.NDArray[np.int64]
+    ) -> npt.NDArray[np.float64]:
+        """Return what :meth:`local_scores_with` returns, without caching anything.
+
+        The exact search scores every parent set of every node once, so
+        caching them would only cost memory.
+        """
+        out: npt.NDArray[np.float64] = (
+            self.compute_extensions(node, parents, extra) + (parents.size + 1) * self._log_odds
+        )
+        return out
+
+    def _prior_bound(self, k: int) -> float:
+        """Return the largest prior term of a family with at least `k` parents."""
+        if self._log_odds <= 0:
+            return k * self._log_odds
+        return max(k, self.n_vars - 1) * self._log_odds
+
+    def _superset_bound(self, node: int, parents: npt.NDArray[np.int64]) -> float:
+        """Return an upper bound on the local score of every strict superset of `parents`.
+
+        The exact search skips the supersets of a set whose bound is below the
+        score of one of its subsets. A score with no such bound returns
+        infinity, and then every parent set is scored.
+        """
+        return math.inf
 
     def _search_view(self) -> FamilyScore:
         """Return the score that GES and XGES search in place of this one: itself.

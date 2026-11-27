@@ -19,7 +19,7 @@ from causalbase.graph import DAG
 from causalbase.scores._compiled import engine_of
 
 if TYPE_CHECKING:
-    from causalbase.scores.bdeu import BDeuScore
+    from causalbase.scores import FamilyScore
 
 __all__ = ["pair_polish"]
 
@@ -38,14 +38,14 @@ def _descendants(children: list[set[int]], v: int) -> set[int]:
     return seen
 
 
-def pair_polish(score: BDeuScore, dag: DAG, n_candidates: int = 10) -> tuple[DAG, float, int]:
+def pair_polish(score: FamilyScore, dag: DAG, n_candidates: int = 10) -> tuple[DAG, float, int]:
     """Add parents (singly, or in pairs when no single one helps) until no node improves.
 
     Parameters
     ----------
-    score : BDeuScore
-        The score, with either prior; families are scored with its compiled
-        engine.
+    score : FamilyScore
+        The score; a :class:`~causalbase.scores.BDeuScore` scores the
+        families with its compiled engine.
     dag : DAG
         Starting graph; its arcs are kept.
     n_candidates : int, default=10

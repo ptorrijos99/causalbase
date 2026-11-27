@@ -77,6 +77,7 @@ class GaussianBICScore(FamilyScore):
         self.n_rows = data.n_rows
         self.covariance = _covariance(data.values)
         self._per_parameter = penalty_discount * math.log(max(data.n_rows, 1)) / 2
+        self._full_likelihoods: dict[int, float] = {}
 
     def _likelihood(
         self, node: int, variance: npt.NDArray[np.float64] | float
@@ -117,3 +118,23 @@ class GaussianBICScore(FamilyScore):
         gain = np.where(safe, cov_xy**2 / np.where(safe, var_x, 1.0), 0.0)
         k = parents.size + 1
         return self._likelihood(node, s2_y - gain) - self._per_parameter * (k + 2)
+
+    def _superset_bound(self, node: int, parents: npt.NDArray[np.int64]) -> float:
+        """Return an upper bound on the BIC of every strict superset of `parents`.
+
+        The residual variance cannot grow when a regressor is added, so no
+        family of `node` is more likely than the one with every other variable
+        as a parent; a strict superset also pays for at least one more
+        parameter. The bound gives way by a little more than the rounding of
+        that likelihood.
+        """
+        k = parents.size + 1
+        if k > self.n_vars - 1:
+            return -math.inf
+        best = self._full_likelihoods.get(node)
+        if best is None:
+            others = np.array([u for u in range(self.n_vars) if u != node], dtype=np.int64)
+            best = self.compute_family(node, others) + self._per_parameter * (others.size + 2)
+            best += 1e-9 * (abs(best) + self.n_rows)
+            self._full_likelihoods[node] = best
+        return best - self._per_parameter * (k + 2) + self._prior_bound(k)

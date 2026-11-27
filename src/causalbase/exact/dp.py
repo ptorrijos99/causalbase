@@ -1,8 +1,10 @@
 """Globally optimal DAG by dynamic programming over subsets.
 
-The score is a :class:`~causalbase.scores.BDeuScore`, with either prior,
-scored with its compiled engine, and :func:`exact_search` is the entry point
-to both exact searches.
+The score is any :class:`~causalbase.scores.FamilyScore`, and
+:func:`exact_search` is the entry point to both exact searches. A
+:class:`~causalbase.scores.BDeuScore`, with either prior, is scored with the
+compiled kernels below; any other score family by family, in batches of
+extensions, as described at the end.
 
 The search follows Silander and Myllymaki (2006). For every variable ``v`` the
 local score of every parent set ``S`` of the other variables is computed (bit
@@ -31,6 +33,17 @@ change.
 Memory is ``2^(p-1)`` float64 per variable while it is scored, ``p 2^(p-1)``
 candidate indices for the dynamic programming and ``2^p`` float64 for ``F``:
 about 6 GB at ``p = 27``.
+
+The other scores go through the same depth-first walk, written in Python: the
+extensions of a set by every later variable are scored in one batch, and the
+supersets of a set are skipped when the score's ``_superset_bound`` proves
+them useless. The discrete BIC bounds them with the argument of de Campos and
+Ji (the log likelihood is at most 0, so the penalty of one more parent alone
+bounds the score); the Gaussian BIC with the likelihood of the family of
+every other variable, which no family of the node can exceed. BGe has no such
+bound here (its marginal likelihood is not bounded by a penalty), so every
+parent set is scored. The walk costs a batch call per parent set, which keeps
+these scores to about 20 variables.
 """
 
 from __future__ import annotations
@@ -49,7 +62,7 @@ from numba import njit, prange
 from causalbase._validation import check_time_limit
 from causalbase.graph import DAG
 from causalbase.scores._compiled import CompiledBDeu, _lg_row, _lik_at, engine_of
-from causalbase.scores.bdeu import BDeuScore
+from causalbase.scores._family import FamilyScore
 from causalbase.search._result import SearchResult
 
 __all__ = ["exact_search"]
@@ -318,8 +331,53 @@ def _priors(fast: CompiledBDeu, m: int) -> np.ndarray:
     return np.array([fast._prior_term(k) for k in range(m + 2)])
 
 
+def walk_parent_sets(
+    score: Any, v: int, max_size: int, prune: bool, tol: float = 1e-6
+) -> tuple[np.ndarray, np.ndarray]:
+    """Score the parent sets of ``v`` of at most ``max_size`` variables, depth first.
+
+    The scores are any score's (see :func:`~causalbase.scores._compiled.engine_of`),
+    a :class:`~causalbase.scores.FamilyScore`'s without its cache. Returns the
+    sets scored, as bitmasks over the other variables in increasing order, and
+    their scores, with ``-inf`` for a score that is not finite. With ``prune``
+    the supersets of a set are left out when the score's ``_superset_bound``
+    for it is below the best score along its chain of subsets, by more than
+    ``tol``.
+    """
+    p = int(score.n_vars)
+    others = np.array([u for u in range(p) if u != v], dtype=np.int64)
+    m = len(others)
+    size = min(max_size, m)
+    family = isinstance(score, FamilyScore)
+    bound = getattr(score, "_superset_bound", None) if prune else None
+    empty = np.zeros(0, dtype=np.int64)
+    first = float(score.local_score(v, ()))
+    first = first if math.isfinite(first) else -math.inf
+    masks, values = [0], [first]
+    stack: list[tuple[int, np.ndarray, float, int]] = [(0, empty, first, 0)]
+    while stack:
+        mask, parents, best, start = stack.pop()
+        if parents.size >= size or start >= m:
+            continue
+        if bound is not None and bound(v, parents) < best - tol:
+            continue  # no superset of this set can be useful
+        bits = np.arange(start, m)
+        if family:
+            vals = score._extensions_uncached(v, parents, others[bits])
+        else:
+            vals = score.local_scores_add(v, parents.tolist(), others[bits])
+        vals = np.asarray(vals, dtype=np.float64)
+        vals = np.where(np.isfinite(vals), vals, -np.inf)
+        for b, s in zip(bits.tolist(), vals.tolist(), strict=True):
+            S = mask | (1 << b)
+            masks.append(S)
+            values.append(s)
+            stack.append((S, np.append(parents, others[b]), max(best, s), b + 1))
+    return np.array(masks, dtype=np.int64), np.array(values)
+
+
 def parent_set_scores(
-    score: BDeuScore | CompiledBDeu,
+    score: Any,
     v: int,
     high: int = 8,
     tol: float = 1e-6,
@@ -331,9 +389,17 @@ def parent_set_scores(
     increasing order. Sets that the superset bound proves useless are
     ``-inf`` (all sets are scored when ``prune`` is false). Returns the scores
     and the number of sets actually scored. `score` is a
-    :class:`~causalbase.scores.BDeuScore` or its compiled engine.
+    :class:`~causalbase.scores.BDeuScore` or its compiled engine, scored with
+    the compiled kernels, or any other score, scored by
+    :func:`walk_parent_sets`.
     """
     score = engine_of(score)
+    if not isinstance(score, CompiledBDeu):
+        m = int(score.n_vars) - 1
+        masks, values = walk_parent_sets(score, v, m, prune, tol)
+        out = np.full(1 << m, -np.inf)
+        out[masks] = values
+        return out, len(masks)
     data = score.data
     p = data.n_vars
     if data.n_rows >= 2**15 or max(data.cardinalities) > 255:
@@ -398,10 +464,9 @@ def _order_dp(
     return F[size - 1], sink
 
 
-def _dp_search(score: CompiledBDeu, prune: bool, verbose: bool) -> SearchResult:
+def _dp_search(score: Any, prune: bool, verbose: bool) -> SearchResult:
     """Find the optimal DAG for the local score of ``score`` by dynamic programming."""
-    data = score.data
-    p = data.n_vars
+    p = int(score.n_vars)
     m = p - 1
     t0 = time.perf_counter()
     cand_masks: list[np.ndarray]
@@ -468,7 +533,7 @@ def _numba_threads(n_jobs: int) -> Iterator[None]:
 
 
 def exact_search(
-    score: BDeuScore,
+    score: FamilyScore,
     *,
     max_parents: int | None = None,
     initial_order: Sequence[int] | None = None,
@@ -488,10 +553,12 @@ def exact_search(
 
     Parameters
     ----------
-    score : BDeuScore
-        The score, with either prior, scored with its compiled engine; its
-        data must have fewer than 32768 rows and at most 255 levels per
-        variable.
+    score : FamilyScore
+        The score. BDeu, with either prior, is scored with compiled kernels,
+        and its data must have fewer than 32768 rows and at most 255 levels
+        per variable. BIC, Gaussian BIC, BGe and scores of one's own are
+        scored family by family in Python (see the module docstring), which
+        limits them to about 20 variables without `max_parents`.
     max_parents : int or None, default=None
         Most parents of a node. None runs the dynamic programming.
     initial_order : sequence of int, optional
@@ -502,11 +569,13 @@ def exact_search(
         the best network found, and ``info["status"]`` says whether it is
         proved optimal.
     n_jobs : int, default=1
-        Threads of the compiled kernels that score the parent sets, at most
-        ``numba.config.NUMBA_NUM_THREADS``. The result does not depend on it.
+        Threads of the compiled kernels that score the parent sets of BDeu,
+        at most ``numba.config.NUMBA_NUM_THREADS``. The result does not
+        depend on it.
     prune : bool, default=True
         Dynamic programming only: skip the parent sets that the superset bound
-        proves useless (the result is the same).
+        of the score proves useless (the result is the same). BGe has no bound,
+        so it scores every set either way.
     verbose : bool, default=False
         Print progress per variable, and SCIP's log.
 

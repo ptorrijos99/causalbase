@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from _problems import best_dag_score, random_discrete
 from _samples import load_cell
 from causalbase.data import DiscreteDataset
 from causalbase.exact import SearchResult, exact_search
@@ -9,77 +10,12 @@ from causalbase.scores import BDeuScore
 from causalbase.search import ges
 
 
-def _random_data(p, n, seed):
-    """Data from a random DAG over a fixed order, with noisy CPTs, so the optimum is not trivial."""
-    rng = np.random.default_rng(seed)
-    cards = rng.integers(2, 4, size=p)
-    X = np.zeros((n, p), dtype=np.int64)
-    for v in range(p):
-        parents = [u for u in range(v) if rng.random() < 0.5]
-        key = np.zeros(n, dtype=np.int64)
-        for u in parents:
-            key = key * cards[u] + X[:, u]
-        q = int(np.prod([cards[u] for u in parents])) if parents else 1
-        cpt = rng.dirichlet(np.full(cards[v], 0.6), size=q)
-        u01 = rng.random(n)
-        X[:, v] = np.minimum((u01[:, None] > np.cumsum(cpt[key], axis=1)).sum(axis=1), cards[v] - 1)
-    perm = rng.permutation(p)  # the generating order is not the variable order
-    X, cards = X[:, perm], cards[perm]
-    return DiscreteDataset(
-        X, cards, [f"x{i}" for i in range(p)], [[str(a) for a in range(c)] for c in cards]
-    )
-
-
-def _local_table(ds, fast):
-    """``table[v][mask]``: score of ``v`` given the parents in ``mask``.
-
-    ``mask`` is a bitmask over all variables.
-    """
-    p = ds.n_vars
-    table = np.full((p, 1 << p), -np.inf)
-    for v in range(p):
-        for mask in range(1 << p):
-            if not (mask >> v) & 1:
-                table[v, mask] = fast.local_score(v, [u for u in range(p) if (mask >> u) & 1])
-    return table
-
-
-def _acyclic(masks):
-    p = len(masks)
-    left = set(range(p))
-    while left:
-        roots = [v for v in left if not any((masks[v] >> u) & 1 for u in left)]
-        if not roots:
-            return False
-        left -= set(roots)
-    return True
-
-
-def _brute_force(ds, fast):
-    """Best score over every assignment of parent sets that forms a DAG."""
-    p = ds.n_vars
-    table = _local_table(ds, fast)
-    options = [[mask for mask in range(1 << p) if not (mask >> v) & 1] for v in range(p)]
-    totals = np.zeros([len(o) for o in options])
-    for v in range(p):
-        shape = [1] * p
-        shape[v] = len(options[v])
-        totals = totals + table[v, options[v]].reshape(shape)
-    flat = totals.ravel()
-    for i in np.argsort(-flat, kind="stable"):
-        choice = np.unravel_index(i, totals.shape)
-        masks = [options[v][choice[v]] for v in range(p)]
-        if _acyclic(masks):
-            return float(flat[i])
-    raise AssertionError("no DAG found")
-
-
 @pytest.mark.parametrize("p,seed", [(3, 0), (4, 1), (4, 2), (5, 3), (5, 4), (5, 5)])
 def test_agrees_with_brute_force_over_all_dags(p, seed):
-    ds = _random_data(p, 300, seed)
+    ds = random_discrete(p, 300, seed)
     fast = BDeuScore(ds, prior="tetrad")
     res = exact_search(fast)
-    assert res.score == pytest.approx(_brute_force(ds, fast), abs=1e-9)
+    assert res.score == pytest.approx(best_dag_score(fast), abs=1e-9)
     assert fast.score_dag(res.dag) == pytest.approx(res.score, abs=1e-9)
     assert sorted(res.dag.topological_order()) == list(range(p))
 
@@ -115,7 +51,7 @@ def test_superset_bound_keeps_the_same_candidates():
 
 
 def test_candidates_beat_all_their_subsets():
-    ds = _random_data(5, 300, 7)
+    ds = random_discrete(5, 300, 7)
     fast = BDeuScore(ds, prior="tetrad")
     m = 4
     scores, _ = parent_set_scores(fast, 2, prune=False)
@@ -194,7 +130,7 @@ def test_limited_candidates_are_right_with_64_variables():
 @pytest.mark.parametrize("p,seed", [(5, 3), (6, 8), (7, 9)])
 def test_integer_program_agrees_with_dynamic_programming(p, seed):
     pytest.importorskip("pyscipopt")
-    ds = _random_data(p, 400, seed)
+    ds = random_discrete(p, 400, seed)
     fast = BDeuScore(ds, prior="tetrad")
     dp = exact_search(fast)
     ilp = exact_search(fast, max_parents=p - 1)

@@ -326,3 +326,21 @@ class BICScore(_DiscreteScore):
             self._count_extensions(node, parents, extra, 0.0) - self._per_parameter * free
         )
         return out
+
+    def _superset_bound(self, node: int, parents: npt.NDArray[np.int64]) -> float:
+        """Return the bound of de Campos and Ji (2011) on the strict supersets of `parents`.
+
+        The maximised log likelihood is at most 0, and a strict superset has at
+        least one more parent, which multiplies the parent configurations by at
+        least the levels of the smallest variable left, so the penalty alone
+        bounds its score.
+        """
+        left = np.ones(self.n_vars, dtype=bool)
+        left[node] = False
+        left[parents] = False
+        if not left.any():
+            return -math.inf
+        q = float(np.prod(self._cards[parents].astype(np.float64)))
+        q *= float(self._cards[left].min())
+        free = q * float(self._cards[node] - 1)
+        return -self._per_parameter * free + self._prior_bound(parents.size + 1)

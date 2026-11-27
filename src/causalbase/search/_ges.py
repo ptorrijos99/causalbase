@@ -11,7 +11,7 @@ from causalbase._base import Estimator, named_adjacency
 from causalbase.data import ContinuousDataset, DiscreteDataset, as_continuous, as_discrete
 from causalbase.graph import DAG, PDAG
 from causalbase.graph.cpdag import dag_to_cpdag
-from causalbase.scores import SCORE_NAMES, log_likelihood, make_score
+from causalbase.scores import CONTINUOUS_SCORES, SCORE_NAMES, log_likelihood, make_score
 from causalbase.search._engine import backward_phase, forward_phase, marginal_sources
 from causalbase.search._knowledge import Knowledge, PairLike
 
@@ -145,12 +145,13 @@ class GES(Estimator):
 
     Parameters
     ----------
-    criterion : {"bdeu", "bic", "gaussian_bic"}, default="bdeu"
-        The scoring criterion: BDeu or BIC over categorical data, or the BIC of
-        a linear Gaussian model over continuous data.
+    criterion : {"bdeu", "bic", "gaussian_bic", "bge"}, default="bdeu"
+        The scoring criterion: BDeu or BIC over categorical data, or the BIC or
+        BGe of a linear Gaussian model over continuous data.
     ess : float, default=1.0
-        Equivalent sample size of the BDeu score. Also the prior of the
-        parameters behind :meth:`score` on categorical data.
+        Equivalent sample size of the BDeu score, or of BGe's prior on the
+        mean. Also the prior of the parameters behind :meth:`score` on
+        categorical data.
     expected_parents : float or None, default=1.0
         Expected in-degree under the structure prior, for every score; see
         :class:`~causalbase.scores.FamilyScore`. ``None`` is a uniform prior.
@@ -227,7 +228,7 @@ class GES(Estimator):
     ) -> DiscreteDataset | ContinuousDataset:
         if self.criterion not in SCORE_NAMES:
             raise ValueError(f"criterion must be one of {SCORE_NAMES}, got {self.criterion!r}")
-        if self.criterion == "gaussian_bic":
+        if self.criterion in CONTINUOUS_SCORES:
             return as_continuous(X)  # type: ignore[arg-type]
         return as_discrete(X)  # type: ignore[arg-type]
 
@@ -253,8 +254,8 @@ class GES(Estimator):
         ----------
         X : DiscreteDataset, ContinuousDataset, pandas.DataFrame or array-like
             Of shape (n_rows, n_vars). For the discrete scores every distinct
-            value of a column is a level; for ``"gaussian_bic"`` the columns
-            are real-valued.
+            value of a column is a level; for ``"gaussian_bic"`` and ``"bge"``
+            the columns are real-valued.
         y : None
             Ignored.
         initial_graph : DAG, optional
@@ -268,7 +269,7 @@ class GES(Estimator):
         ------
         ValueError
             If `X` has no rows, or a hyperparameter is out of range (including
-            ``prior="tetrad"`` with a BIC criterion).
+            ``prior="tetrad"`` with a criterion other than ``"bdeu"``).
         """
         data = self._encode(X)
         if data.n_rows == 0:

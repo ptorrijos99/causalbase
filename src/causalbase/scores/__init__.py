@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Literal
 from causalbase.scores._family import FamilyScore
 from causalbase.scores.base import Score
 from causalbase.scores.bdeu import PRIORS, BDeuScore, BICScore, Prior
+from causalbase.scores.bge import BGeScore
 from causalbase.scores.gaussian import GaussianBICScore
 from causalbase.scores.likelihood import log_likelihood
 
@@ -15,8 +16,10 @@ if TYPE_CHECKING:
 
 __all__ = [
     "PRIORS",
+    "CONTINUOUS_SCORES",
     "SCORE_NAMES",
     "BDeuScore",
+    "BGeScore",
     "BICScore",
     "FamilyScore",
     "GaussianBICScore",
@@ -27,10 +30,13 @@ __all__ = [
     "make_score",
 ]
 
-ScoreName = Literal["bdeu", "bic", "gaussian_bic"]
-"""The scores the estimators take by name: two discrete, one continuous."""
+ScoreName = Literal["bdeu", "bic", "gaussian_bic", "bge"]
+"""The scores the estimators take by name: two discrete, two continuous."""
 
-SCORE_NAMES: tuple[ScoreName, ...] = ("bdeu", "bic", "gaussian_bic")
+SCORE_NAMES: tuple[ScoreName, ...] = ("bdeu", "bic", "gaussian_bic", "bge")
+
+CONTINUOUS_SCORES: tuple[ScoreName, ...] = ("gaussian_bic", "bge")
+"""The scores among :data:`SCORE_NAMES` that take a ``ContinuousDataset``."""
 
 
 def make_score(
@@ -46,13 +52,14 @@ def make_score(
 
     Parameters
     ----------
-    name : {"bdeu", "bic", "gaussian_bic"}
+    name : {"bdeu", "bic", "gaussian_bic", "bge"}
         :class:`BDeuScore` and :class:`BICScore` take a ``DiscreteDataset``,
-        :class:`GaussianBICScore` a ``ContinuousDataset``.
+        :class:`GaussianBICScore` and :class:`BGeScore` a ``ContinuousDataset``.
     data : DiscreteDataset or ContinuousDataset
         The data to score against.
     ess : float, default=1.0
-        Equivalent sample size, for BDeu only.
+        Equivalent sample size: of the BDeu prior, and of the prior on the
+        mean for BGe (its `alpha_mu`).
     expected_parents : float or None, default=1.0
         Structure prior, for every score; see :class:`FamilyScore`.
     prior : {"bernoulli", "tetrad"}, default="bernoulli"
@@ -64,7 +71,7 @@ def make_score(
     Raises
     ------
     ValueError
-        If `name` is not one of the three, or `prior` is unknown or not one of
+        If `name` is not one of the four, or `prior` is unknown or not one of
         the score's.
     TypeError
         If `data` is not the kind of dataset the score takes.
@@ -77,10 +84,12 @@ def make_score(
         raise ValueError(f"prior must be one of {PRIORS}, got {prior!r}")
     if prior != "bernoulli" and name != "bdeu":
         raise ValueError(f"prior={prior!r} is a prior of the 'bdeu' score only, not {name!r}")
-    wanted = ContinuousDataset if name == "gaussian_bic" else DiscreteDataset
+    wanted = ContinuousDataset if name in CONTINUOUS_SCORES else DiscreteDataset
     if not isinstance(data, wanted):
         raise TypeError(f"the {name!r} score takes a {wanted.__name__}, got {type(data).__name__}")
     if isinstance(data, ContinuousDataset):
+        if name == "bge":
+            return BGeScore(data, alpha_mu=ess, expected_parents=expected_parents)
         return GaussianBICScore(
             data, penalty_discount=penalty_discount, expected_parents=expected_parents
         )

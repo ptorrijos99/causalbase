@@ -2,6 +2,23 @@
 
 All notable changes to causalbase are listed here. The project follows [semantic versioning](https://semver.org/); before 1.0.0, a minor release may change the API, and the changelog says how.
 
+## 0.2.0 (unreleased)
+
+Every search now takes every score, and BGe is new.
+
+### Scores
+
+- `BGeScore(data, *, alpha_mu=1.0, alpha_w=None, expected_parents=1.0)`, the Bayesian marginal likelihood of a linear Gaussian model under a normal-Wishart prior (Geiger and Heckerman, 1994; Kuipers, Moffa and Heckerman, 2014), with the prior mean at the sample means and `alpha_w` at `n_vars + 2` by default, as in bnlearn. Markov equivalent DAGs score the same. `make_score("bge", data, ess=...)` builds it with `ess` as `alpha_mu`, and every estimator takes `criterion="bge"`.
+- `FamilyScore.local_scores_add(node, parents, candidates)`, the batch method the order searches, hill climbing and FLOP call; it is `local_scores_with` under that name, so that every `FamilyScore`, including one of one's own, works with them.
+- `CONTINUOUS_SCORES` in `causalbase.scores` names the scores that take a `ContinuousDataset`.
+
+### Estimators and searches
+
+- `OrderSearch`, `FLOP`, `HillClimbing` and `ExactSearch` take `criterion` (`"bdeu"`, `"bic"`, `"gaussian_bic"` or `"bge"`) as their first parameter, as `GES` and `XGES` do, and `penalty_discount` after `prior`. A positional first argument, which used to be `ess`, is now the criterion. BDeu stays the default and runs on the same compiled engine, with the same results.
+- `order_search`, `flop`, `hill_climbing`, `pair_polish`, `OrderScorer`, `PolishedILS` and `exact_search` take any `FamilyScore`. `PolishedILS.ess` and `PolishedILS.data` are `None` for a score without them.
+- `exact_search` scores the parent sets of the scores other than BDeu in Python, pruning the discrete BIC with the bound of de Campos and Ji (2011) and the Gaussian BIC with the likelihood of the family of every other variable. BGe is not pruned.
+- `GES` and `XGES` take `criterion="bge"`, and `prior="tetrad"` is refused with any criterion other than `"bdeu"` in every estimator.
+
 ## 0.1.0 (2026-11-27)
 
 First release. causalbase is the part of [fedcausal](https://github.com/ptorrijos99/fedcausal) that learns from data held in one place, made a package of its own; fedcausal 1.0.0 keeps the federated methods and depends on it. The history of the code up to the split is in fedcausal's changelog.

@@ -1,4 +1,4 @@
-"""The estimators on the compiled BDeu: OrderSearch, HillClimbing, FLOP and ExactSearch."""
+"""The estimators on one local score: OrderSearch, HillClimbing, FLOP and ExactSearch."""
 
 from __future__ import annotations
 

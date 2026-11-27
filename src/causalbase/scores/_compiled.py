@@ -1301,13 +1301,14 @@ class CompiledBDeu:
         return self._run(int(node), par, cand, self._prior_term(len(par) + 1))
 
 
-def engine_of(score: BDeuScore | CompiledBDeu) -> CompiledBDeu:
-    """Return the engine the order searches, hill climbing, FLOP and the exact searches score with.
+def engine_of(score: Any) -> Any:
+    """Return what the order searches, hill climbing, FLOP and the exact searches score with.
 
     That is ``score._engine()`` for a :class:`~causalbase.scores.BDeuScore`.
-    Any other object with the engine's ``local_score(node, parents)`` and
-    ``local_scores_add(node, parents, candidates)`` is returned as it is: an
-    engine with other kernel settings, or a score of one's own.
+    Any other object with ``local_score(node, parents)`` and
+    ``local_scores_add(node, parents, candidates)`` is returned as it is: every
+    other :class:`~causalbase.scores.FamilyScore`, an engine with other kernel
+    settings, or a score of one's own.
 
     Raises
     ------
@@ -1318,4 +1319,7 @@ def engine_of(score: BDeuScore | CompiledBDeu) -> CompiledBDeu:
         return score._engine()
     if hasattr(score, "local_score") and hasattr(score, "local_scores_add"):
         return score
-    raise TypeError(f"the search takes a BDeuScore, got {type(score).__name__}")
+    raise TypeError(
+        "the search takes a score with local_score and local_scores_add, such as a "
+        f"FamilyScore, got {type(score).__name__}"
+    )

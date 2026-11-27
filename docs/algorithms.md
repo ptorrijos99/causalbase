@@ -2,13 +2,22 @@
 
 What each estimator does, what its options change, and how it is made fast. The measurements behind the defaults are in [Benchmarks](benchmarks.md).
 
-GES and XGES search the space of Markov equivalence classes and return a CPDAG. The other four search over variable orders or over DAGs, return one DAG, and score categorical data with BDeu only; `cpdag_` is then the class of that DAG.
+GES and XGES search the space of Markov equivalence classes and return a CPDAG. The other four search over variable orders or over DAGs and return one DAG; `cpdag_` is then the class of that DAG. Every estimator takes every score, named by `criterion`.
 
 ## Scores and structure priors
 
-All the searches maximise a decomposable score, a sum of one term per node that depends on the node and its parents (a family). On categorical data the default is BDeu, the log marginal likelihood of the data under a Dirichlet prior of equivalent sample size `ess` spread uniformly over the cells of each family. `BICScore` is the penalised log likelihood, and `GaussianBICScore` the BIC of a linear Gaussian model, computed from the covariance matrix.
+All the searches maximise a decomposable score, a sum of one term per node that depends on the node and its parents (a family). On categorical data the default is BDeu, the log marginal likelihood of the data under a Dirichlet prior of equivalent sample size `ess` spread uniformly over the cells of each family. `BICScore` is the penalised log likelihood. On continuous data, `GaussianBICScore` is the BIC of a linear Gaussian model, and `BGeScore` the Bayesian marginal likelihood of the same model under a normal-Wishart prior (Geiger and Heckerman, 1994, with the corrections of Kuipers, Moffa and Heckerman, 2014), the Gaussian counterpart of BDeu: Markov equivalent DAGs score the same. Both are computed from the covariance matrix.
 
-A structure prior is added to each family. The default Bernoulli prior makes each of the `n_vars - 1` other variables a parent with probability `expected_parents / (n_vars - 1)`, so a family with `k` parents gains `k log(p / (1 - p))`. `prior="tetrad"` is the prior of Tetrad 7.6.5's BDeu, `k log p + (m - k) log(1 - p)` with `m = n_rows - 1`, which counts rows instead of variables and keeps the constant, so `score_` is the value Tetrad reports for the same network. With `expected_parents=None` the prior is uniform and the score is plain BDeu or BIC.
+| `criterion` | Score | Data | Parameters |
+|---|---|---|---|
+| `"bdeu"` | `BDeuScore` | Categorical | `ess`, the equivalent sample size; `prior` |
+| `"bic"` | `BICScore` | Categorical | `penalty_discount` |
+| `"gaussian_bic"` | `GaussianBICScore` | Continuous | `penalty_discount` |
+| `"bge"` | `BGeScore` | Continuous | `ess` as `alpha_mu`, the equivalent sample size of the prior on the mean |
+
+BGe has a second parameter, the degrees of freedom `alpha_w` of the Wishart prior on the precision matrix, `n_vars + 2` by default as in bnlearn; the estimators keep the default, and `BGeScore(data, alpha_w=...)` passed to a search function changes it. The prior mean is the vector of sample means and the prior scale `t I` with `t = alpha_mu (alpha_w - n_vars - 1) / (alpha_mu + 1)`, which does not rescale with the data, so standardised columns give every variable the same prior.
+
+A structure prior is added to each family. The default Bernoulli prior makes each of the `n_vars - 1` other variables a parent with probability `expected_parents / (n_vars - 1)`, so a family with `k` parents gains `k log(p / (1 - p))`. `prior="tetrad"` is the prior of Tetrad 7.6.5's BDeu, `k log p + (m - k) log(1 - p)` with `m = n_rows - 1`, which counts rows instead of variables and keeps the constant, so `score_` is the value Tetrad reports for the same network. With `expected_parents=None` the prior is uniform and the score is plain BDeu, BIC or BGe. The Bernoulli prior depends only on the number of edges, so BDeu and BGe stay score equivalent with it; Tetrad's prior is for BDeu only.
 
 ```python
 from causalbase.scores import BDeuScore
@@ -19,6 +28,8 @@ score.score_dag(dag)
 ```
 
 The score objects cache the families they compute, so one object should serve a whole search; they are not safe to share between threads.
+
+BDeu runs on a compiled engine in the order searches, hill climbing, FLOP and the exact search. The other scores reach those searches through the same two methods, `local_score` and `local_scores_add` (the families of a node with one parent more, in one batch), which every `FamilyScore` has, so a score of one's own works with all of them too.
 
 ## GES
 
@@ -41,11 +52,11 @@ GES(
 
 | Option | Default | What it does |
 |---|---|---|
-| `criterion` | `"bdeu"` | The score. `"bdeu"` and `"bic"` take categorical data; `"gaussian_bic"` takes continuous data and scores a linear Gaussian model from its covariance matrix. |
-| `ess` | `1.0` | Equivalent sample size of the BDeu score. Larger values favour denser graphs. |
-| `expected_parents` | `1.0` | Structure prior, added to any criterion: each of the `m = n_vars - 1` possible parents of a node is present with probability `expected_parents / m`, capped at one half. `None` is the uniform prior, plain BDeu or plain BIC. |
+| `criterion` | `"bdeu"` | The score. `"bdeu"` and `"bic"` take categorical data; `"gaussian_bic"` and `"bge"` take continuous data and score a linear Gaussian model from its covariance matrix. |
+| `ess` | `1.0` | Equivalent sample size of the BDeu score, or of BGe's prior on the mean. Larger values favour denser graphs. |
+| `expected_parents` | `1.0` | Structure prior, added to any criterion: each of the `m = n_vars - 1` possible parents of a node is present with probability `expected_parents / m`, capped at one half. `None` is the uniform prior, the plain score. |
 | `prior` | `"bernoulli"` | Which structure prior. `"tetrad"`, for BDeu only, is Tetrad 7.6.5's, `k log p + (m - k) log(1 - p)` with `p = expected_parents / m` and `m = n_rows - 1`: the same Bernoulli prior with the number of rows in place of the number of variables, so `score_` is Tetrad's value. GES searches it through the Bernoulli BDeu with that `p`, which ranks the families of a node the same way. |
-| `penalty_discount` | `1.0` | Multiplier of the BIC penalty, `log(n) / 2` per free parameter. |
+| `penalty_discount` | `1.0` | Multiplier of the penalty of the two BIC scores, `log(n) / 2` per free parameter. |
 | `max_parents` | `None` | Most parents an Insert may give a node. |
 | `max_t_size` | `None` | Largest set of neighbours an Insert orients into its head. `None` tries every set that can be valid, as Chickering defines the operator. |
 | `one_edge_faithfulness` | `False` | Join two variables only if the score finds them dependent on their own, as fGES does (Ramsey et al., 2017). |
@@ -101,9 +112,11 @@ A variable order fixes, for every node, the set of variables that may be its par
 
 ```python
 OrderSearch(
+    criterion="bdeu",
     ess=1.0,
     expected_parents=1.0,
     prior="bernoulli",
+    penalty_discount=1.0,
     n_restarts=2,
     polish="ges",
     n_pair_candidates=0,
@@ -125,13 +138,15 @@ OrderSearch(
 
 ## FLOP
 
-FLOP (Wienöbst, Henckel and Weichwald, 2026) is another search over orders, here on BDeu instead of the linear Gaussian score of the original. It differs from `OrderSearch` in the scorer and the moves. For each node it runs a non-greedy grow-shrink, warm-started from the node's previous parents: candidates are visited in random order and any that improves is added, then any parent whose removal improves is removed. Its local search reinserts every variable at its best position, visiting them in their current order, and its iterated search kicks the best order with `round(ln p)` random swaps, rebuilds the parent sets from scratch, and moves only to a strictly better order. It does not end its local searches with GES.
+FLOP (Wienöbst, Henckel and Weichwald, 2026) is another search over orders, here on any of the scores, BDeu by default, where the original uses the Gaussian BIC. It differs from `OrderSearch` in the scorer and the moves. For each node it runs a non-greedy grow-shrink, warm-started from the node's previous parents: candidates are visited in random order and any that improves is added, then any parent whose removal improves is removed. Its local search reinserts every variable at its best position, visiting them in their current order, and its iterated search kicks the best order with `round(ln p)` random swaps, rebuilds the parent sets from scratch, and moves only to a strictly better order. It does not end its local searches with GES.
 
 ```python
 FLOP(
+    criterion="bdeu",
     ess=1.0,
     expected_parents=1.0,
     prior="bernoulli",
+    penalty_discount=1.0,
     init="ges",
     max_iter=None,
     time_limit=60.0,
@@ -148,9 +163,11 @@ The classic score-based search over DAGs, as bnlearn's `hc` and `tabu`. From the
 
 ```python
 HillClimbing(
+    criterion="bdeu",
     ess=1.0,
     expected_parents=1.0,
     prior="bernoulli",
+    penalty_discount=1.0,
     tabu_length=0,
     max_tabu_moves=0,
     n_restarts=0,
@@ -172,14 +189,23 @@ A hill climb over DAGs stops at the first network no single arc change improves,
 
 ## ExactSearch
 
-The network of highest score, found by dynamic programming over subsets of variables (Silander and Myllymäki, 2006). For every node the score of every possible parent set is computed, and a set is kept only if it beats all its subsets. The best network over a set `W` of variables is then the best, over the variable `v` of `W` that comes last, of the best network over `W - v` plus the best parent set of `v` inside `W - v`. Most of the time goes into scoring the `2^(p-1)` parent sets of each node, and the search skips the supersets that a bound on BDeu proves cannot be useful.
+The network of highest score, found by dynamic programming over subsets of variables (Silander and Myllymäki, 2006). For every node the score of every possible parent set is computed, and a set is kept only if it beats all its subsets. The best network over a set `W` of variables is then the best, over the variable `v` of `W` that comes last, of the best network over `W - v` plus the best parent set of `v` inside `W - v`. Most of the time goes into scoring the `2^(p-1)` parent sets of each node, and the search skips the supersets of a set that a bound on the score proves cannot be useful.
 
 ```python
 ExactSearch(
-    ess=1.0, expected_parents=1.0, prior="bernoulli", max_parents=None, time_limit=None, n_jobs=1
+    criterion="bdeu",
+    ess=1.0,
+    expected_parents=1.0,
+    prior="bernoulli",
+    penalty_discount=1.0,
+    max_parents=None,
+    time_limit=None,
+    n_jobs=1,
 )
 ```
 
-Time and memory grow as `p 2^p`. The 20 variables of `child` take about eight minutes on one thread, most of it scoring parent sets, which `n_jobs` spreads over threads; 27 variables need about 6 GB of memory. The data must have fewer than 32768 rows and at most 255 levels per variable.
+Time and memory grow as `p 2^p`. With BDeu, the parent sets are scored by compiled kernels: the 20 variables of `child` take about eight minutes on one thread, most of it scoring parent sets, which `n_jobs` spreads over threads, and 27 variables need about 6 GB of memory. The data must then have fewer than 32768 rows and at most 255 levels per variable.
+
+The other scores are walked over the same parent sets in Python, one batch of extensions per set, at some 20 to 50 microseconds a set: a few minutes for 20 variables when nothing is pruned, and more than an hour for 24. Each prunes with a bound of its own. On BDeu, every factor of the marginal likelihood written as a Polya urn is at most 1, which bounds a superset by its number of non-empty cells. On the discrete BIC, the log likelihood is at most 0, so the penalty of one more parent alone bounds every superset (de Campos and Ji, 2011). On the Gaussian BIC, no family of a node is more likely than the one with every other variable as a parent, so that likelihood, less the penalty, bounds them. BGe has no bound here, since its marginal likelihood carries no penalty term to compare with, so every parent set is scored; the result is still the optimum.
 
 With `max_parents`, the search is an integer program in the style of GOBNILP (Cussens, 2011; Bartlett and Cussens, 2017), solved with SCIP through PySCIPOpt (`pip install "causalbase[exact]"`): one binary variable per candidate parent set of at most `max_parents` variables, exactly one chosen per node, and acyclicity imposed by cluster constraints, added when a solution violates them. SCIP starts from the best network consistent with the order GES learns. The result is optimal among the DAGs whose families have at most `max_parents` parents, and the global optimum only if no larger family would have been a candidate, which is not checked. Parent sets are 64-bit masks, so this search takes at most 64 variables. With `time_limit` it returns the best network SCIP found in time, and the function behind it, `causalbase.exact.exact_search`, says in `info["status"]` whether it was proved optimal.
