@@ -44,6 +44,9 @@ dependencies = [
   "numba>=0.59",
   "numpy>=1.24",
   "pandas>=2.0",
+  # Numba compiles np.linalg (the Cholesky factors of the Gaussian BIC and BGe
+  # kernels) through SciPy's LAPACK bindings.
+  "scipy>=1.10",
   # Pure-Python, dependency-free shim: supplies `typing.Self` on Python 3.10,
   # where it isn't in the stdlib yet.
   "typing_extensions>=4.0",

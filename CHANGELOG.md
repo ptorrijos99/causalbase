@@ -13,6 +13,7 @@ Every search takes every score, every score runs on compiled kernels, and the si
 - Every estimator's `fit` is `fit(X, y=None, initial_graph=None)`, and every one keeps `dag_`, `cpdag_`, `score_`, `n_iter_`, `trace_` and `adjacency_`. `GES` and `XGES` gained `n_iter_` and `trace_`, and the others gained `initial_graph` (the first order of the order searches, and the first solution of `ExactSearch`'s integer program).
 - `n_jobs` belongs to the score. `BICScore`, `GaussianBICScore` and `BGeScore` take it as `BDeuScore` did, and `exact_search` no longer has its own; it uses the score's. `n_jobs=-1` means every thread numba has, everywhere. The discrete scores used to count GES's batches on every thread numba had whatever `n_jobs` said; they now use `n_jobs`, 1 by default, which on the bundled networks is as fast.
 - `exact_search` no longer refuses discrete data of 32768 rows or more, or with more than 255 levels: it scores such data through the score's own batches, more slowly.
+- SciPy is a dependency: Numba compiles the linear algebra of the Gaussian kernels through it.
 - The Gaussian BIC drops a parent that the others determine exactly instead of fitting it by least squares, which gives the same residual; its values may differ from 0.1.0's in the last digits.
 
 ### Scores
