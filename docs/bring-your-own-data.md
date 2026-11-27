@@ -65,6 +65,6 @@ bn = load_xbif("alarm.xbif")
 data = forward_sample(bn, n=5000, seed=0)
 ```
 
-`load_xbif` reads XMLBIF, the format the [Bayesian Network Repository](https://www.bnlearn.com/bnrepository/) publishes. `forward_sample` draws from the network, which is how the recovery tests generate data with a known answer.
+`load_xbif` reads XMLBIF and `load_bif` reads BIF, the formats the [Bayesian Network Repository](https://www.bnlearn.com/bnrepository/) publishes; [Benchmark networks](datasets.md) downloads 226 networks with samples already drawn. `forward_sample` draws from the network, which is how the recovery tests generate data with a known answer.
 
 Watch the variable order here: `bn.names` comes from the file and need not match a CSV of the same network. Re-index before comparing, as [Quickstart](quickstart.md) shows.

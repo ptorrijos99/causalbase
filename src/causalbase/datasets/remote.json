@@ -1,0 +1,1847 @@
+{
+ "bnlearn": {
+  "record": "24567570",
+  "doi": "10.5281/zenodo.24567570",
+  "concept_doi": "10.5281/zenodo.14917795"
+ },
+ "bnRep": {
+  "record": "24009173",
+  "doi": "10.5281/zenodo.24009173",
+  "concept_doi": "10.5281/zenodo.23561524"
+ },
+ "bayesfl_commit": "7885b3f788c3cabf87aa1880ca22975b8d227e4a",
+ "networks": {
+  "cancer": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "cancer.zip",
+   "md5": "b41ae2399273886ddbc9273c8975135a",
+   "size": 555479,
+   "n_vars": 5,
+   "bif_sha256": "05d4ea00a758450eed6fe68ea6de4da05ce0e3e919bd3e8ff7f0bc80a1db4b48"
+  },
+  "earthquake": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "earthquake.zip",
+   "md5": "7c5a69db42cabc08e48077b0b4b039d1",
+   "size": 173743,
+   "n_vars": 5,
+   "bif_sha256": "74dd131e2c6437a39de17f2963d2d16fadd91e70450d1fc20501df05e8dc4f2e"
+  },
+  "survey": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "survey.zip",
+   "md5": "4682aacc44ab544fe834c560b984668c",
+   "size": 866763,
+   "n_vars": 6,
+   "bif_sha256": "3698ccc0f1f74b9f935617d91989e4cdb39edb5360b558216af64047fc88b3b0"
+  },
+  "asia": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "asia.zip",
+   "md5": "692c0bfb7d9e60c54b3a111de71f4003",
+   "size": 671779,
+   "n_vars": 8,
+   "bif_sha256": "9f770c96940dc4d860b581602120790ac538983b30b28d38631b8184dc7b5f89"
+  },
+  "sachs": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "sachs.zip",
+   "md5": "58aa942a2752cba651b040c2385a0fd3",
+   "size": 2040651,
+   "n_vars": 11,
+   "bif_sha256": "b7bd3931192f9e529f0f88bba15fca6cc61ba3c805d5c8ae57eba57ed3b332ec"
+  },
+  "child": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "child.zip",
+   "md5": "98863262d85515845340cd1d6ce06ebc",
+   "size": 3817830,
+   "n_vars": 20,
+   "bif_sha256": "432c22e661cd0e8235c8d95599ac22ccc261002459f5c4e6e7235b057908fe6e"
+  },
+  "insurance": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "insurance.zip",
+   "md5": "3ae0399292198dc1878f4cee198bc14a",
+   "size": 5270073,
+   "n_vars": 27,
+   "bif_sha256": "39f9e706e9208e720a55a98b6811188b33a7292335a53373a9343a0c7065dab4"
+  },
+  "water": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "water.zip",
+   "md5": "0c55ac7f5419850d0ef8e39bf8e5fe50",
+   "size": 4889215,
+   "n_vars": 32,
+   "bif_sha256": "433a1c1a795e6a26d4ea41e1916982e7af9c7fff236438f4d4006bbacd226661"
+  },
+  "mildew": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "mildew.zip",
+   "md5": "26765fa7c2009a2a044b29a74abf2612",
+   "size": 19385517,
+   "n_vars": 35,
+   "bif_sha256": "bc1cf6af78a9b289249b6805a65f83af8be9a742aca5d789188d4737b80cfd9b"
+  },
+  "alarm": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "alarm.zip",
+   "md5": "fd529771339e60d707287ac0ca230f8e",
+   "size": 6019714,
+   "n_vars": 37,
+   "bif_sha256": "701e6c561f71b55669070c29614f0724b761289aa2c4a35bcc97b638ee881fa2"
+  },
+  "barley": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "barley.zip",
+   "md5": "1345c01df353178c43b6bf4b918f9a32",
+   "size": 23619999,
+   "n_vars": 48,
+   "bif_sha256": "1250e958b3d8ca87ccf8af9584de8baa18da667fbccbf4e0efa2a33e112fe346"
+  },
+  "hailfinder": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "hailfinder.zip",
+   "md5": "abe6ded94828012539cca4c5ce804db8",
+   "size": 21967331,
+   "n_vars": 56,
+   "bif_sha256": "cf09960af33dd643771c61e23a89c7815448047f335ffa9ba7d57359bc755548"
+  },
+  "hepar2": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "hepar2.zip",
+   "md5": "d78077f44c1e88c2cb84e8e31f2f268a",
+   "size": 13289820,
+   "n_vars": 70,
+   "bif_sha256": "d70ffdcc3b698235002898344c98d9645beb277969f29ba7af6f11d7db3f16cc"
+  },
+  "win95pts": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "win95pts.zip",
+   "md5": "777e52b3b7b052ec6bd27896cadbfded",
+   "size": 7368887,
+   "n_vars": 76,
+   "bif_sha256": "14d2195e0c4613e0beb1f06e9199c8cd39a1154171a215c38b47c0fd773d0b36"
+  },
+  "pathfinder": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "pathfinder.zip",
+   "md5": "4415f44c7d0bdda3fd37c0d170213b6e",
+   "size": 19230586,
+   "n_vars": 109,
+   "bif_sha256": "2c67a693139b417067d895077aa00b8610a97eadf8a6fbae544631729a7a6f24"
+  },
+  "munin1": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "munin1.zip",
+   "md5": "f71c719936d325ce3e2882a47edfacc5",
+   "size": 29196676,
+   "n_vars": 186,
+   "bif_sha256": "decf5ce383c6d1c3010ec3c8419a9fa7520efef924f27f98578bb5332968b6d2"
+  },
+  "andes": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "andes.zip",
+   "md5": "444710f3ed36dd86bf8ba30423f8e11a",
+   "size": 24371186,
+   "n_vars": 223,
+   "bif_sha256": "2330f233405fbbdf2a485651edd4130d3d09f816e81cb7056842ae6021edabe4"
+  },
+  "diabetes": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "diabetes.zip",
+   "md5": "6f064569d7274f03c2aa5722197037d2",
+   "size": 183192666,
+   "n_vars": 413,
+   "bif_sha256": "062a429ad6fb61120f4a3d68fa9bc7350799cdab33cd60bf383c5d41b42b43fb"
+  },
+  "pigs": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "pigs.zip",
+   "md5": "7cb3892512348b856077d816761cf463",
+   "size": 64966487,
+   "n_vars": 441,
+   "bif_sha256": "1d474376703784f755048daa0fd1ce0be89b5676254e08256c3424e3e4caf805"
+  },
+  "link": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "link.zip",
+   "md5": "a1c6ebd8f99bc9166a0be44e0dd47ffc",
+   "size": 162176651,
+   "n_vars": 724,
+   "bif_sha256": "19299d5710d9a59b8812e0c811bbabb1230d3e42801d297c7f90dffb4fc1c59e"
+  },
+  "munin2": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "munin2.zip",
+   "md5": "5318559fc9712e8307cfff72e3a18e4f",
+   "size": 115851105,
+   "n_vars": 1003,
+   "bif_sha256": "572ba4528e45d933953073c546abae4014eaee73f041356eb181838de8b33880"
+  },
+  "munin4": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "munin4.zip",
+   "md5": "7179443815bb381a85bb9e3874339a77",
+   "size": 133607232,
+   "n_vars": 1038,
+   "bif_sha256": "af0ec78fce35f3cdebedff4b1a191a44b8d28e1c8d609e3a5cbc7ce4489d74d1"
+  },
+  "munin": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "munin.zip",
+   "md5": "a89265c099d62d1e315f6f0e20172249",
+   "size": 199068996,
+   "n_vars": 1041,
+   "bif_sha256": "9235aff13057307e3f1b8aaea0c6cd072653e0cfbd0db8f9068094f8f18dbf11"
+  },
+  "munin3": {
+   "source": "bnlearn",
+   "record": "24567570",
+   "file": "munin3.zip",
+   "md5": "72d6aa30a8dbe552241841e117103774",
+   "size": 128130782,
+   "n_vars": 1041,
+   "bif_sha256": "bbed2463e8f4ab2f84144ea16eb0a94bc4388045e5898110cad514244adc1f2c"
+  },
+  "bnrep_burglar": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 3
+  },
+  "bnrep_concrete3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 3
+  },
+  "bnrep_concrete5": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 3
+  },
+  "bnrep_concrete6": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 3
+  },
+  "bnrep_corticosteroid": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 3
+  },
+  "bnrep_medicaltest": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 3
+  },
+  "bnrep_vaccine": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 3
+  },
+  "bnrep_adversarialbehavior": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_algorithms3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_algorithms4": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_bank": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_chds": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_conasense": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_concrete1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_concrete2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_concrete4": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_fluids1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_hydraulicsystem": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_navigation": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_simulation": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_theft1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_titanic": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 4
+  },
+  "bnrep_agropastoral5": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_beatles": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_bullet": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_concrete7": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_fluids2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_perioperative": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_softwarelogs1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_theft2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_trajectories": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_tubercolosis": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_wheat": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_01-05_nodes.zip",
+   "md5": "5c8819bcc6db32327e70e62c91f43eb0",
+   "size": 19475545,
+   "n_vars": 5
+  },
+  "bnrep_augmenting": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_beam1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_beam2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_compaction": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_crypto": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_firealarm": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_knowledge": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_phdarticles": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_rainwater": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_ricci": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_rockburst": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_sallyclark": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_soil": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_transport": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_witness": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 6
+  },
+  "bnrep_moodstate": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 7
+  },
+  "bnrep_mountaingoat": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 7
+  },
+  "bnrep_salmonella1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 7
+  },
+  "bnrep_soilliquefaction1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 7
+  },
+  "bnrep_soilliquefaction2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 7
+  },
+  "bnrep_soilliquefaction3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 7
+  },
+  "bnrep_soilliquefaction4": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 7
+  },
+  "bnrep_twinframework": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 7
+  },
+  "bnrep_algalactivity1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_algalactivity2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_asia": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_coral1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_coral2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_coral3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_coral4": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_coral5": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_criminal3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_criminal4": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_enrollment": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_foodallergy1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_foodallergy2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_foodallergy3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_fundraising": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_intentionalattacks": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_metal": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 8
+  },
+  "bnrep_aircrash": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_algal1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_bankruptcy": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_covidfear": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_covidrisk": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_crimescene": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_diabetes": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_dioxins": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_fluids3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_lidar": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_rockquality": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_safespeeds": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_soillead": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 9
+  },
+  "bnrep_APSsystem": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 10
+  },
+  "bnrep_argument": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 10
+  },
+  "bnrep_gonorrhoeae": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 10
+  },
+  "bnrep_greencredit": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 10
+  },
+  "bnrep_lawschool": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 10
+  },
+  "bnrep_liquidity": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 10
+  },
+  "bnrep_nuclearwaste": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 10
+  },
+  "bnrep_salmonella2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 10
+  },
+  "bnrep_seismic": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 10
+  },
+  "bnrep_tbm": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_06-10_nodes.zip",
+   "md5": "ca8e661c0f8c22559e607a174a0841a5",
+   "size": 64991063,
+   "n_vars": 10
+  },
+  "bnrep_agropastoral2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 11
+  },
+  "bnrep_agropastoral3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 11
+  },
+  "bnrep_disputed1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 11
+  },
+  "bnrep_drainage": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 11
+  },
+  "bnrep_fire": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 11
+  },
+  "bnrep_redmeat": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 11
+  },
+  "bnrep_ropesegment": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 11
+  },
+  "bnrep_blockchain": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 12
+  },
+  "bnrep_covid1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 12
+  },
+  "bnrep_covid2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 12
+  },
+  "bnrep_covid3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 12
+  },
+  "bnrep_criminal1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 12
+  },
+  "bnrep_criminal2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 12
+  },
+  "bnrep_engines": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 12
+  },
+  "bnrep_fingermarks1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 12
+  },
+  "bnrep_fingermarks2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 12
+  },
+  "bnrep_cardiovascular": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 13
+  },
+  "bnrep_curacao1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 13
+  },
+  "bnrep_curacao2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 13
+  },
+  "bnrep_curacao4": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 13
+  },
+  "bnrep_curacao5": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 13
+  },
+  "bnrep_ecosystem": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 13
+  },
+  "bnrep_income": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 13
+  },
+  "bnrep_vessel2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 13
+  },
+  "bnrep_permaBN": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 14
+  },
+  "bnrep_softwarelogs3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 14
+  },
+  "bnrep_softwarelogs4": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 14
+  },
+  "bnrep_volleyball": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 14
+  },
+  "bnrep_agropastoral1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 15
+  },
+  "bnrep_consequenceCovid": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 15
+  },
+  "bnrep_macrophytes": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_11-15_nodes.zip",
+   "md5": "01a3d0545e4c019ed9fb8c82a1e0bdb4",
+   "size": 53479997,
+   "n_vars": 15
+  },
+  "bnrep_electrolysis": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 16
+  },
+  "bnrep_intensification": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 16
+  },
+  "bnrep_vessel1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 16
+  },
+  "bnrep_accidents": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 17
+  },
+  "bnrep_disputed2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 17
+  },
+  "bnrep_emergency": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 17
+  },
+  "bnrep_tastingtea": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 17
+  },
+  "bnrep_waterlead": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 17
+  },
+  "bnrep_constructionproductivity": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 18
+  },
+  "bnrep_covidtech": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 18
+  },
+  "bnrep_gasexplosion": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 18
+  },
+  "bnrep_megacities": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 18
+  },
+  "bnrep_adhd": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 19
+  },
+  "bnrep_airegulation2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 19
+  },
+  "bnrep_airegulation3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 19
+  },
+  "bnrep_catchment": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 19
+  },
+  "bnrep_curacao3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 19
+  },
+  "bnrep_nuisancegrowth": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 19
+  },
+  "bnrep_corical": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 20
+  },
+  "bnrep_ets": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_small_16-20_nodes.zip",
+   "md5": "80f38d07c4dffcada709f2f865aeea5d",
+   "size": 55786135,
+   "n_vars": 20
+  },
+  "bnrep_agropastoral4": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_agropastoral4.zip",
+   "md5": "50ff330c7c3f14f049e08c1629de5008",
+   "size": 2701462,
+   "n_vars": 21
+  },
+  "bnrep_humanitarian": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_humanitarian.zip",
+   "md5": "99b73fcdaa823b98a3392821bbe6170e",
+   "size": 3219022,
+   "n_vars": 21
+  },
+  "bnrep_project": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_project.zip",
+   "md5": "0c0dc7adfa04271fe8c41b10c35edbb6",
+   "size": 1766147,
+   "n_vars": 21
+  },
+  "bnrep_airegulation1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_airegulation1.zip",
+   "md5": "4e4c82a6d9b06c9a730778752e327fe5",
+   "size": 5728914,
+   "n_vars": 22
+  },
+  "bnrep_corrosion": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_corrosion.zip",
+   "md5": "451dd9abcc85838f595ad5f36f18bfd2",
+   "size": 3491711,
+   "n_vars": 22
+  },
+  "bnrep_flood": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_flood.zip",
+   "md5": "a261799236a52b761ecb433dc80a236e",
+   "size": 6064115,
+   "n_vars": 22
+  },
+  "bnrep_polymorphic": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_polymorphic.zip",
+   "md5": "9ea3fac81c594de358e79ac43b07f4a2",
+   "size": 415291,
+   "n_vars": 22
+  },
+  "bnrep_case": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_case.zip",
+   "md5": "aafda7e4d77e5067f6c51e04f3850fc2",
+   "size": 887889,
+   "n_vars": 23
+  },
+  "bnrep_disputed4": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_disputed4.zip",
+   "md5": "3dd3b26fe6d92a3ddbef3230aaba7ba8",
+   "size": 1212580,
+   "n_vars": 23
+  },
+  "bnrep_electricvehicle": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_electricvehicle.zip",
+   "md5": "0462602dfb353aedf64f26e7f100cb53",
+   "size": 1746044,
+   "n_vars": 23
+  },
+  "bnrep_firerisk": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_firerisk.zip",
+   "md5": "3f2227db7ef3b52a4e4209f8607cf09b",
+   "size": 1926584,
+   "n_vars": 23
+  },
+  "bnrep_charleston": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_charleston.zip",
+   "md5": "c0c1239dda8c2d1c674c74da5418bc01",
+   "size": 2274714,
+   "n_vars": 24
+  },
+  "bnrep_dustexplosion": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_dustexplosion.zip",
+   "md5": "c0487f6fdf2c79280adc13024595ec4e",
+   "size": 3228427,
+   "n_vars": 26
+  },
+  "bnrep_projectmanagement": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_projectmanagement.zip",
+   "md5": "2493e90bcda74a3472141a706d1cc624",
+   "size": 2932261,
+   "n_vars": 26
+  },
+  "bnrep_student1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_student1.zip",
+   "md5": "20ab2f713da768251247615ead2e4310",
+   "size": 5300056,
+   "n_vars": 26
+  },
+  "bnrep_student2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_student2.zip",
+   "md5": "b479b9565cc0af131143c0b19860095f",
+   "size": 5399290,
+   "n_vars": 26
+  },
+  "bnrep_disputed3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_disputed3.zip",
+   "md5": "b814f6f7271e2edd47c1a83fb888cc4e",
+   "size": 1687251,
+   "n_vars": 27
+  },
+  "bnrep_realestate1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_realestate1.zip",
+   "md5": "c5630329aa3f95b57b237e85860326a1",
+   "size": 6325292,
+   "n_vars": 27
+  },
+  "bnrep_realestate2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_realestate2.zip",
+   "md5": "b5cce28173829f69512cad48d797a2f3",
+   "size": 6102048,
+   "n_vars": 27
+  },
+  "bnrep_realestate3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_realestate3.zip",
+   "md5": "a4c9b0fe23cbbe18e5939a9ff74ed95a",
+   "size": 5992053,
+   "n_vars": 27
+  },
+  "bnrep_BOPfailure3": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_BOPfailure3.zip",
+   "md5": "b918221a9b403c5cc1d89911ff5488ff",
+   "size": 322650,
+   "n_vars": 28
+  },
+  "bnrep_GDIpathway1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_GDIpathway1.zip",
+   "md5": "6c4ee658365f9536675b8584fd424758",
+   "size": 2767839,
+   "n_vars": 28
+  },
+  "bnrep_GDIpathway2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_GDIpathway2.zip",
+   "md5": "0fb80248a1e6461bb529ed0bb8a9736f",
+   "size": 3570763,
+   "n_vars": 28
+  },
+  "bnrep_inverters": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_inverters.zip",
+   "md5": "4793b8bfec0e763901b9c85daee869e7",
+   "size": 2654481,
+   "n_vars": 29
+  },
+  "bnrep_BOPfailure1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_BOPfailure1.zip",
+   "md5": "4bccbe96bdce00d88fe632af12409935",
+   "size": 746287,
+   "n_vars": 30
+  },
+  "bnrep_estuary": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_estuary.zip",
+   "md5": "b2ede6e6a1b1fa5aebe5423eb9656ab1",
+   "size": 8329897,
+   "n_vars": 30
+  },
+  "bnrep_oxygen": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_oxygen.zip",
+   "md5": "1b526f0bcc7ef9e919529185d7293713",
+   "size": 455321,
+   "n_vars": 31
+  },
+  "bnrep_yangtze": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_yangtze.zip",
+   "md5": "3a6211effffaf9b0ea953fdf2ed19603",
+   "size": 4036109,
+   "n_vars": 31
+  },
+  "bnrep_rainstorm": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_rainstorm.zip",
+   "md5": "8785f44b4eedc031c172e09f68871991",
+   "size": 5006187,
+   "n_vars": 34
+  },
+  "bnrep_grounding": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_grounding.zip",
+   "md5": "6997d045933246522a4200c6bd12869c",
+   "size": 3108746,
+   "n_vars": 36
+  },
+  "bnrep_resilience": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_resilience.zip",
+   "md5": "77d33178f02e3ebd065737bcfe4e09d4",
+   "size": 5911648,
+   "n_vars": 36
+  },
+  "bnrep_shipping": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_shipping.zip",
+   "md5": "54374bf16efbb69f89c21d23cae2ab6a",
+   "size": 438030,
+   "n_vars": 36
+  },
+  "bnrep_urinary": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_urinary.zip",
+   "md5": "3b6aa072d390631b45b6e20576b2693d",
+   "size": 7238059,
+   "n_vars": 36
+  },
+  "bnrep_kosterhavet": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_kosterhavet.zip",
+   "md5": "4eb1348416ac7bf639276aa537fc43c3",
+   "size": 7650192,
+   "n_vars": 38
+  },
+  "bnrep_aerialvehicles": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_aerialvehicles.zip",
+   "md5": "63ae3b54dc1c7c963ad0f4b19b268cd0",
+   "size": 693827,
+   "n_vars": 39
+  },
+  "bnrep_earthquake": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_earthquake.zip",
+   "md5": "c0afd3927a20c6c6eceba989ebd24d32",
+   "size": 9253144,
+   "n_vars": 40
+  },
+  "bnrep_gasifier": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_gasifier.zip",
+   "md5": "d01343a231e1773c13314892d70a499a",
+   "size": 2339573,
+   "n_vars": 40
+  },
+  "bnrep_softwarelogs2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_softwarelogs2.zip",
+   "md5": "f407a4cd2c63be5ad70d2d2630edef44",
+   "size": 9289735,
+   "n_vars": 40
+  },
+  "bnrep_oildepot": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_oildepot.zip",
+   "md5": "553eb7c6533bbdef3c5918c1ea3bebed",
+   "size": 779127,
+   "n_vars": 41
+  },
+  "bnrep_pilot": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_pilot.zip",
+   "md5": "001a6bc51a23659dc2a5800c09fb9bb5",
+   "size": 431673,
+   "n_vars": 42
+  },
+  "bnrep_lithium": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_lithium.zip",
+   "md5": "48fbc699c20030b44bdfd32f7661ab05",
+   "size": 1096547,
+   "n_vars": 45
+  },
+  "bnrep_BOPfailure2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_BOPfailure2.zip",
+   "md5": "b1caf73eca6f9fd90e6e9c6909b8605c",
+   "size": 710752,
+   "n_vars": 46
+  },
+  "bnrep_arcticwaters": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_arcticwaters.zip",
+   "md5": "def7b68a5cff4e533772f5f414b2e64b",
+   "size": 4665399,
+   "n_vars": 46
+  },
+  "bnrep_nanomaterials2": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_nanomaterials2.zip",
+   "md5": "ec8a12e88affe63f46d7c47f5e319bfe",
+   "size": 16202301,
+   "n_vars": 46
+  },
+  "bnrep_poultry": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_poultry.zip",
+   "md5": "2ac4d7ea991e47b159cba20bca8c1e0a",
+   "size": 3964700,
+   "n_vars": 47
+  },
+  "bnrep_blacksea": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_blacksea.zip",
+   "md5": "122c1787afa64e03d3b7a23a2c8a8ca2",
+   "size": 5845392,
+   "n_vars": 48
+  },
+  "bnrep_nanomaterials1": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_nanomaterials1.zip",
+   "md5": "34473a7d79d3332abf52ac4b25be76ab",
+   "size": 17842241,
+   "n_vars": 49
+  },
+  "bnrep_propellant": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_propellant.zip",
+   "md5": "94ed59ba5d9a6e10ba94f42edeb4f61d",
+   "size": 1117601,
+   "n_vars": 49
+  },
+  "bnrep_dragline": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_dragline.zip",
+   "md5": "39243afea4cc11dd598a0eac61a53a6d",
+   "size": 1086725,
+   "n_vars": 51
+  },
+  "bnrep_orbital": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_orbital.zip",
+   "md5": "34940c6d1e4534310149323808b8185f",
+   "size": 13033193,
+   "n_vars": 60
+  },
+  "bnrep_pneumonia": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_pneumonia.zip",
+   "md5": "f628d8d28f0a35de0b04bcb5d19cfd42",
+   "size": 11123015,
+   "n_vars": 62
+  },
+  "bnrep_forest": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_forest.zip",
+   "md5": "f866b350ae143555d6d6851eb0163fee",
+   "size": 28013288,
+   "n_vars": 80
+  },
+  "bnrep_onlinerisk": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_onlinerisk.zip",
+   "md5": "2db02f6d8c82f9295ea7bd3207b16b64",
+   "size": 7389638,
+   "n_vars": 84
+  },
+  "bnrep_cng": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_cng.zip",
+   "md5": "de4a1e077ddc87f655a42065a60b3fba",
+   "size": 656981,
+   "n_vars": 86
+  },
+  "bnrep_windturbine": {
+   "source": "bnRep",
+   "record": "24009173",
+   "file": "bnrep_windturbine.zip",
+   "md5": "b9ebb53cfe1d270a461312267595702a",
+   "size": 703606,
+   "n_vars": 122
+  }
+ }
+}

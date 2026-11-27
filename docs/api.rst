@@ -163,14 +163,16 @@ Data
    data.as_continuous
    data.as_continuous_sites
 
-Bundled networks
-================
+Benchmark networks
+==================
 
 Five networks of the `Bayesian Network Repository
 <https://www.bnlearn.com/bnrepository/>`_ ship with the package, each with one
-sample of 5000 rows, so that the examples and the tests need no downloads.
-Each loader returns a :class:`~causalbase.datasets.NetworkBundle` whose true
-structure is already indexed like the columns of its data.
+sample of 5000 rows, so that the examples and the tests need no downloads, and
+:func:`~causalbase.datasets.fetch_network` downloads 100 samples of each of
+226 networks of that repository and of bnRep (see :doc:`datasets`). Each
+returns a :class:`~causalbase.datasets.NetworkBundle` whose true structure is
+already indexed like the columns of its data.
 
 .. autosummary::
    :toctree: generated/
@@ -178,6 +180,9 @@ structure is already indexed like the columns of its data.
 
    datasets.load_network
    datasets.list_networks
+   datasets.fetch_network
+   datasets.list_remote_networks
+   datasets.get_data_home
    datasets.load_cancer
    datasets.load_asia
    datasets.load_child
@@ -238,6 +243,8 @@ Networks and sampling
    :toctree: generated/
    :template: function.rst
 
+   io.load_bif
+   io.parse_bif
    io.load_xbif
    io.forward_sample
 

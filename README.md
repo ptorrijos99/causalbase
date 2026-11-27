@@ -51,6 +51,14 @@ shd(bundle.truth, model.dag_)  # structural Hamming distance to the true network
 
 Every distinct value of a column is a level, so a numeric column is read as categories. Continuous data takes `criterion="gaussian_bic"` or `criterion="bge"`, in any estimator.
 
+Besides the five bundled networks, `fetch_network` downloads from Zenodo 100 samples of each of the 24 discrete networks of bnlearn's repository and of the 202 of bnRep, and keeps them in a local cache:
+
+```python
+from causalbase.datasets import fetch_network
+
+bundle = fetch_network("pathfinder", sample=3)  # data, true DAG and network
+```
+
 The searches over orders and over DAGs return one network:
 
 ```python
