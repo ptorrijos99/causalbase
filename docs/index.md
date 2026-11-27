@@ -2,7 +2,7 @@
 
 [Source](https://github.com/ptorrijos99/causalbase) | [Issues](https://github.com/ptorrijos99/causalbase/issues) | [Changelog](https://github.com/ptorrijos99/causalbase/blob/main/CHANGELOG.md) | [Citing](citing.md)
 
-causalbase learns the structure of Bayesian networks from data. It has six estimators, all following scikit-learn's conventions:
+causalbase learns the structure of Bayesian networks from data. It has seven estimators, all following scikit-learn's conventions:
 
 | Estimator | Data | Returns |
 |---|---|---|
@@ -12,6 +12,7 @@ causalbase learns the structure of Bayesian networks from data. It has six estim
 | {class}`~causalbase.order.FLOP` | The same | A DAG, by FLOP's search over orders |
 | {class}`~causalbase.search.HillClimbing` | The same | A DAG, by hill climbing or tabu search |
 | {class}`~causalbase.exact.ExactSearch` | The same | The DAG of highest score, or the best one under a parent limit |
+| {class}`~causalbase.lingam.RCD` | Continuous, linear with non-Gaussian noise | A causal order and its coefficients, from higher-order cumulants |
 
 ```python
 from causalbase import GES

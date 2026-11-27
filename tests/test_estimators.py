@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from causalbase import GES, XGES
+from causalbase import GES, RCD, XGES
 from causalbase.exceptions import CausalBaseError, NotFittedError
 
 
@@ -15,7 +15,7 @@ def _discrete(n_rows: int = 300, seed: int = 0) -> np.ndarray:
 
 def test_the_scikit_learn_parameter_protocol() -> None:
     sklearn_base = pytest.importorskip("sklearn.base")
-    for cls in (GES, XGES):
+    for cls in (GES, XGES, RCD):
         model = cls()
         assert repr(model) == f"{cls.__name__}()"
         assert model.set_params(**model.get_params()) is model
@@ -26,7 +26,7 @@ def test_the_scikit_learn_parameter_protocol() -> None:
             _ = model.adjacency_
         assert not hasattr(model, "adjacency_")
     assert issubclass(NotFittedError, CausalBaseError)
-    for model in (GES(ess=5.0), XGES(extended=False)):
+    for model in (GES(ess=5.0), XGES(extended=False), RCD(method="sort", order=3)):
         assert sklearn_base.clone(model).get_params() == model.get_params()
 
 

@@ -15,6 +15,7 @@ SUBPACKAGES = [
     "causalbase.exceptions",
     "causalbase.graph",
     "causalbase.io",
+    "causalbase.lingam",
     "causalbase.metrics",
     "causalbase.order",
     "causalbase.scores",

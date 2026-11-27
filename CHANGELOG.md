@@ -4,7 +4,7 @@ All notable changes to causalbase are listed here. The project follows [semantic
 
 ## 0.2.0 (unreleased)
 
-Every search takes every score, every score runs on compiled kernels, and the six estimators and their functions share one interface, which breaks the API of 0.1.0 as listed below. BGe is new.
+Every search takes every score, every score runs on compiled kernels, and the six estimators and their functions share one interface, which breaks the API of 0.1.0 as listed below. BGe is new, and RCD and the other cumulant methods for linear non-Gaussian models move here from fedcausal.
 
 ### Breaking changes
 
@@ -35,9 +35,15 @@ Every search takes every score, every score runs on compiled kernels, and the si
 - `OrderScorer` used to keep a score for every variable of every parent set it visited, so its memory grew with the length of the search (about 12 GB on munin, with 1041 variables, after 30 minutes). It now keeps, for each parent set, only the toggles that improve on it, which are the only ones a climb, a replay or `breaks` can take, and one answer object per result shared by every predecessor set that reaches it. Searches and their results are unchanged.
 - `cache_mb`, in `OrderScorer`, `order_search`, `flop`, `OrderSearch` and `FLOP`: a memory budget for the caches of local scores and visited parent sets, 2048 MiB by default except in `OrderScorer` (unbounded). When a query leaves them above it, every cache drops its oldest quarter. Results do not change, since a dropped entry is computed again when needed; a tight budget only costs time. `OrderScorer.cache_nbytes` is the estimate the budget is checked against, and `flop` reports the scores it dropped in `info["cache_evicted"]`.
 
+### Linear non-Gaussian models
+
+- `causalbase.lingam`, the cumulant methods for linear non-Gaussian models, moved from fedcausal so that the centralised ones live with the other methods that learn from one table. fedcausal 1.0.0 imports them from here and keeps its federated names.
+- `RCD`, also importable from `causalbase`: the causal order from the third- or fourth-order cumulants of the data, then the coefficients by adaptive lasso or OLS, with fitted `causal_order_`, `coef_`, `dag_` and `adjacency_`. Its options are those of fedcausal's `FedRCD`; HC-LiNGAM is `RCD(method="sort")` and HC `RCD(method="exact")`, and both reproduce the orders and coefficients of the original implementation.
+- The functions behind it, on the statistics rather than the data: `moment_sums` and `cumulants_from_sums`, which merge the sums of any number of blocks of rows exactly; `rcd` on the cumulants, `rcd_exact` on a table and `exact_order` with the deflation left to the caller; the tau discriminators `tau_matrix_3rd` and `tau_matrix_4th`; and `estimate_b_from_cov` and `estimate_b_lasso_from_cov` for the coefficients on a known order.
+
 ## 0.1.0 (2026-11-27)
 
-First release. causalbase is the part of [fedcausal](https://github.com/ptorrijos99/fedcausal) that learns from data held in one place, made a package of its own; fedcausal 1.0.0 keeps the federated methods and depends on it. The history of the code up to the split is in fedcausal's changelog.
+First release. causalbase is the part of [fedcausal](https://github.com/ptorrijos99/fedcausal) that learns from data held in one place, made a package of its own; fedcausal 1.0.0 keeps the federated methods and depends on it.
 
 ### Estimators
 

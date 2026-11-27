@@ -1,6 +1,6 @@
 """Bayesian network structure learning and causal discovery.
 
-Six estimators cover the common cases:
+Seven estimators cover the common cases:
 
 * :class:`GES` learns a causal structure, and :class:`XGES` does so with a
   search that removes edges as it goes.
@@ -9,13 +9,16 @@ Six estimators cover the common cases:
   FLOP's search over orders.
 * :class:`HillClimbing` climbs over DAGs, optionally as a tabu search with
   restarts, and :class:`ExactSearch` finds the network of highest score.
+* :class:`RCD` learns a linear non-Gaussian model from continuous data through
+  its higher-order cumulants, with HC-LiNGAM and HC among its settings.
 
-Each takes any of the four scores by name (``criterion``): BDeu or BIC on
-discrete data, the Gaussian BIC or BGe on continuous data. They share their
-interface and follow scikit-learn's conventions: hyperparameters go to the
-constructor, ``fit`` learns, and results end in an underscore. The function
-behind each, which takes a score object and returns a
-:class:`~causalbase.search.SearchResult`, is in its subpackage. Federated
+Each score-based estimator takes any of the four scores by name
+(``criterion``): BDeu or BIC on discrete data, the Gaussian BIC or BGe on
+continuous data. All of them follow scikit-learn's conventions:
+hyperparameters go to the constructor, ``fit`` learns, and results end in an
+underscore. The function behind each score-based estimator, which takes a
+score object and returns a :class:`~causalbase.search.SearchResult`, is in its
+subpackage. Federated
 learning over data held by several sites lives in the ``fedcausal`` package,
 which builds on this one.
 """
@@ -28,6 +31,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from causalbase.exact import ExactSearch
     from causalbase.graph import DAG, PDAG
+    from causalbase.lingam import RCD
     from causalbase.order import FLOP, OrderSearch
     from causalbase.search import GES, XGES, HillClimbing
 
@@ -38,6 +42,7 @@ __all__ = [
     "FLOP",
     "GES",
     "PDAG",
+    "RCD",
     "XGES",
     "ExactSearch",
     "HillClimbing",
@@ -56,6 +61,7 @@ _HOMES = {
     "OrderSearch": "causalbase.order",
     "FLOP": "causalbase.order",
     "ExactSearch": "causalbase.exact",
+    "RCD": "causalbase.lingam",
 }
 
 

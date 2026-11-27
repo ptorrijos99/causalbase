@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "causalbase"
 # Read from `causalbase.__version__`, so the package and its metadata agree.
 dynamic = ["version"]
-description = "Bayesian network structure learning and causal discovery: GES, XGES, order search, hill climbing and exact search"
+description = "Bayesian network structure learning and causal discovery: GES, XGES, order search, hill climbing, exact search and cumulant-based LiNGAM"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -23,6 +23,7 @@ keywords = [
   "greedy equivalence search",
   "BDeu",
   "order search",
+  "LiNGAM",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",

@@ -46,7 +46,7 @@ A change to the search must keep each phase of GES at a local optimum of its ope
 
 ## Adding a method
 
-A search goes in `causalbase.search` (over graphs or equivalence classes) or `causalbase.order` (over variable orders), a score in `causalbase.scores`. Nothing here may import `fedcausal` or `flwr`, not even under `TYPE_CHECKING`; `tests/test_layout.py` checks it. Federated methods belong in `fedcausal`.
+A search goes in `causalbase.search` (over graphs or equivalence classes) or `causalbase.order` (over variable orders), a score in `causalbase.scores`, and a method that works from the moments of continuous data rather than a score in `causalbase.lingam`. Nothing here may import `fedcausal` or `flwr`, not even under `TYPE_CHECKING`; `tests/test_layout.py` checks it. Federated methods belong in `fedcausal`.
 
 ## Style
 
